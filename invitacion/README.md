@@ -31,10 +31,13 @@ La conexión usa una implementación de Google Apps Script de tu propiedad, prot
 |---|---|
 | `web/body.html` | Contenido común de la invitación |
 | `public/web/styles.css` | Diseño y adaptación a móvil |
+| `public/web/faculty.css` | Colores y detalles inspirados en el PDF de la facultad |
+| `public/web/fonts/` | Great Vibes y su licencia SIL OFL, servidas desde el propio sitio |
 | `public/web/app.js` | Formulario, galería, pases y subidas |
 | `public/web/config.js` | URL pública del servidor, sin claves |
 | `public/venue/` | Las cuatro fotos públicas del campus y del auditorio |
 | `scripts/build-pages.mjs` | Exportar archivos estáticos a GitHub Pages |
+| `web/share-card.html` | Diseño de la imagen de vista previa al compartir |
 | `app/api/[...path]/route.ts` | API y CORS limitado a la cuenta de GitHub autorizada |
 | `lib/media.ts` | Validación y transferencia limitada por tamaño |
 | `lib/drive.ts` | Conexión privada, subidas a Drive y lectura por rangos |

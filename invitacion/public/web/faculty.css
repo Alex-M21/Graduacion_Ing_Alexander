@@ -1,0 +1,118 @@
+/* Palette and ceremonial details inspired by the faculty's supplied invitation. */
+@font-face{font-family:"Great Vibes";src:url("./fonts/GreatVibes-Regular.ttf") format("truetype");font-weight:400;font-style:normal;font-display:swap}
+:root{--navy:#122b54;--navy-deep:#0b1d39;--gold:#c49a50;--gold-light:#e6ca8c;--ivory:#fef7ef;--orange:var(--gold);--orange-dark:#85591f;--gray:var(--navy);--muted:#526176;--line:#e1d3ba;--light:#f5eddf;--white:#fffdfa;background:var(--ivory);color:var(--navy)}
+body{background:var(--ivory);color:var(--navy)}
+.nav{background:var(--navy);border-bottom:3px solid var(--gold);color:var(--ivory)}
+.nav .brand,.nav nav>a{color:var(--ivory)}
+.nav .brand>span,.nav-confirm span{color:var(--gold-light)}
+.nav .brand small{color:#deded8}
+.hero{position:relative;isolation:isolate;background:var(--ivory)}
+.hero::after{content:"";position:absolute;inset:0 0 0 auto;width:36px;pointer-events:none;z-index:-1;background:linear-gradient(102deg,transparent 0 39%,var(--gold) 40% 43%,var(--navy) 44% 68%,#203d68 69% 76%,var(--gold) 77% 80%,var(--navy-deep) 81%)}
+.hero-top>.eyebrow{color:var(--navy)}
+.motion-toggle{background:#ede4d4;color:#3f526b}
+.motion-toggle:disabled{opacity:.8;cursor:default}
+.faculty-signature{display:flex;align-items:center;gap:13px;padding:26px 0 0;color:var(--navy)}
+.faculty-emblem{width:46px;height:46px;display:grid;place-items:center;border:1px solid var(--gold);border-radius:50%;color:#9d712c;flex-shrink:0;box-shadow:0 0 0 4px #c49a5010}
+.faculty-emblem svg{width:32px;height:32px}
+.faculty-signature strong{display:block;font-size:13px;line-height:1.7;letter-spacing:1.2px;text-transform:uppercase}
+.faculty-signature div>span{display:block;font-size:11px;line-height:1.8;letter-spacing:.1px;color:var(--muted)}
+.faculty-rule{height:1px;background:linear-gradient(90deg,var(--gold),transparent);flex:1;margin-left:12px;max-width:270px}
+.hero-grid{padding-top:30px}
+.hero h1{color:var(--navy);line-height:1.04;margin-bottom:26px}
+.hero h1 em,.invitation-v3 h2 em,.venue-heading h3 em{font-family:"Great Vibes",Georgia,serif;font-style:normal;font-weight:400;letter-spacing:0}
+.hero h1 em{font-size:1.18em;line-height:1.1;display:inline-block;padding-right:.1em;color:#a77b32}
+.title-star{color:var(--gold)}
+.hero-message strong{color:var(--navy)}
+.graduate-name{color:var(--navy)}
+.orange{background:linear-gradient(115deg,#e2c78e,#c49a50);color:var(--navy-deep);border:1px solid #b48a40;box-shadow:0 3px 12px #b48a4012}
+.dark{background:var(--navy);color:var(--ivory)}
+.light{background:#eee4d2;color:var(--navy)}
+.hero-photo{border:1px solid #c49a5070;border-radius:190px 190px 10px 10px;box-shadow:12px 14px 0 #122b540a}
+.hero-photo::after{background:linear-gradient(transparent,#081b35d9)}
+.hero-photo figcaption strong{color:#f9e4b4}
+.photo-date-stamp{background:#fffaf1;border:1px solid #c49a5080;box-shadow:0 9px 35px #122b5419;color:var(--navy)}
+.photo-date-stamp>i{color:#b5883c}
+.hero-keepsake{background:#fffaf1;border:1px solid #dbc69f;box-shadow:0 10px 30px #122b5424}
+.hero-visual-note{color:#637089}
+.countdown-wrap{border-color:#c49a5080}
+.countdown strong{color:var(--navy)}
+.countdown-separator{color:#9d712c}
+.how-it-works{background:#f2e9d8;border-top:1px solid #e0cba4;border-bottom:1px solid #e0cba4}
+.step-number{background:#fffaf2;border-color:#c9a86a;color:#78551e}
+.section-label{border-color:#d5bd94;color:#59677a}
+.event-story-mark{color:#8a94a4}
+.event-story-mark i{color:#b68a3d}
+.entry-note{background:#f3ebdd;border:1px solid #e3d2b4}
+.info-icon{color:#916725}
+.venue-heading h3{color:var(--navy)}
+.venue-heading h3 em{color:#996c28;font-size:1.15em}
+.venue-photo{border:1px solid #122b541f}
+.venue-caption{background:linear-gradient(transparent,#0b1d39e6)}
+.venue-caption i{border-color:#e6ca8c9c;color:#ffe7b2}
+.registration{background:#f0e8d8;border-top:1px solid #e0cba4;border-bottom:1px solid #e0cba4}
+.registration h2 em{font-size:1.14em;line-height:1.16;color:#8a6022}
+.form-card{background:#fffdf8;border-color:#d9c49f;border-top:3px solid var(--gold);box-shadow:0 14px 45px #122b5408}
+#rsvp-form input:not([type=checkbox]){background:#fffefb;border-color:#c5bdaF;color:var(--navy);border-radius:5px}
+#rsvp-form input:focus{border-color:#916725}
+#rsvp-form input::placeholder{color:#687487}
+.success-mark{background:#f3e5c7;color:#8a6022;border:1px solid #dfc58f}
+.registration-aside>span{color:#a49a85}
+.album{background:var(--navy);border-top:4px solid var(--gold);color:var(--ivory)}
+.album .section-label{border-color:#48618a;color:#d9dfeb}
+.album-kicker{color:#e5cf9d}
+.album-kicker>span{color:var(--gold-light)}
+.album-heading h2 em{color:var(--gold-light);font-size:1.12em;line-height:1.2}
+.album-heading-aside>p{color:#d9dfeb}
+.memory-print{background:#fff9ee;color:#9f7430;border:1px solid #ddc99f}
+.memory-print>span{background:#ebe6da}
+.memory-print:nth-child(3)>span{background:#efdfbe}
+.memory-print>small{color:#4d5a6e}
+.album .album-locked{background:#1b355d;border-color:#49638d}
+.album .album-date-mark{color:var(--gold-light)}
+.album .label{color:#e5cc95}
+.album .album-locked p{color:#e0e5ef}
+.album .album-locked .dark{background:linear-gradient(115deg,#e2c78e,#c49a50);color:var(--navy-deep);border:1px solid #bb9148}
+.album .upload-panel{background:var(--ivory);border-top:3px solid var(--gold);color:var(--navy)}
+.upload-icon{background:#eee0c0;color:#8c6223}
+.upload-panel p{color:#526176}
+.album .upload-policy{color:#d1d9e7}
+.album .filters{background:#223d65;border:1px solid #516a91}
+.album .filters button{color:#ecedf0}
+.album .filters button.active{background:#f4e5c5;color:var(--navy)}
+.album-toolbar .text-button{color:#e9e8e3;border-color:#8d9bb0}
+.album-collection-label{color:#d1dae8}
+.media-item{background:#0c2141;border:1px solid #49628a66}
+.media-caption{background:linear-gradient(transparent,#071a37db)}
+.video-tile{background:radial-gradient(ellipse at top right,#c49a5033,transparent 65%),linear-gradient(145deg,#284774,#142d51)}
+.video-tile>span:first-child{border-color:#e6ca8c;color:#f3deb4}
+.video-tile small{color:#e2d9c4}
+.album .empty-album{background:#19365e;border-color:#6680a4;color:var(--ivory)}
+.empty-album>span{color:var(--gold-light)}
+.empty-album p{color:#dce3ef}
+.album>#album-content>#more-media{background:#27466e;border:1px solid #6880a1;color:var(--ivory)}
+.album-foot{color:#d5dbe5;border-color:#49648e}
+.closing{background:var(--ivory);position:relative;border-bottom:3px solid var(--gold)}
+.closing h2 em{font-size:1.12em;color:#9d712c}
+.closing-signature{font-family:"Great Vibes",Georgia,serif;font-size:34px;font-style:normal;color:var(--navy)}
+.closing .text-button{color:var(--navy);border-color:#9a8c71}
+.footer{background:var(--navy-deep);color:var(--ivory)}
+.footer .brand{color:var(--ivory)}
+.footer .brand>span{color:var(--gold-light)}
+.footer>p,.footer>a:last-child{color:#d5deec}
+.footer .brand small{color:#dedfda}
+.mobile-action{background:#fffaf3fa;border-color:#d0b680}
+.mobile-action>span{color:var(--navy)}
+.toast{background:var(--navy-deep);border:1px solid #b28c48;color:var(--ivory)}
+.viewer{background:#0d2343;color:var(--ivory);border:1px solid #c49a5045}
+.viewer::backdrop{background:#061329f2}
+.viewer-stage,.viewer video{background:#08172e}
+.viewer-loading{background:#08172e;color:#e6e5e0}
+.viewer-loading::before{border-color:#49658c;border-top-color:var(--gold-light)}
+.viewer-header>span{color:#e7cd97}
+.viewer .viewer-close,.viewer-navigation button{background:#243e65;color:#f4e6c7}
+#viewer-position{color:#c4cfe1}
+.viewer-error{color:#e5e9f1}
+@media(hover:hover){.orange:hover{background:linear-gradient(115deg,#ecd6a7,#d4ad66)}.viewer-navigation button:hover:not(:disabled){background:#3d587f}.album-toolbar .text-button:hover{color:var(--gold-light)}}
+@media(max-width:1050px){.faculty-signature{padding-top:22px}.faculty-rule{max-width:120px}.hero::after{width:25px}}
+@media(max-width:760px){.hero::after{width:12px}.hero-top>.eyebrow{font-size:8px}.faculty-signature{gap:10px;padding-top:22px}.faculty-emblem{width:38px;height:38px}.faculty-emblem svg{width:26px;height:26px}.faculty-signature strong{font-size:10px;letter-spacing:1px}.faculty-signature div>span{font-size:10px;letter-spacing:0}.faculty-rule{display:none}.hero-grid{padding-top:27px}.hero h1{line-height:1.06;margin-bottom:21px}.hero h1 em{font-size:1.16em;line-height:1.08}.hero-photo{border-radius:180px 180px 10px 10px;box-shadow:8px 10px 0 #122b5409}.registration h2 em{font-size:1.09em}.album-heading h2 em{font-size:1.1em;line-height:1.25}.closing h2 em{font-size:1.08em}.closing-signature{font-size:31px}.viewer{border:0}.venue-gallery-controls button{background:#eee1ca;color:var(--navy)}}
+@media(max-width:360px){.faculty-signature div>span{font-size:9px}.faculty-signature strong{font-size:9px}.faculty-emblem{width:35px;height:35px}.faculty-signature{gap:9px}.hero h1 em{font-size:1.12em}.album-heading h2 em{font-size:1.06em}}

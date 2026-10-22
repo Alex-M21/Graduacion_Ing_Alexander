@@ -1,6 +1,6 @@
 # Graduación Ing. Alexander Mejía
 
-Invitación web en **gris, naranja y blanco**, con registro directo y álbum compartido de fotos y videos.
+Invitación web en **azul marino, dorado y marfil**, inspirada en la invitación de la Facultad de Ingeniería, con registro directo y álbum compartido de fotos y videos.
 
 Portada con fotos del campus, galería del lugar con las cuatro imágenes proporcionadas y álbum del evento en mosaico. El visor admite navegación con botones, teclado y deslizamiento en celulares, además de video con controles. Las fotos del lugar son públicas; los recuerdos que suban los invitados mantienen su acceso privado.
 
