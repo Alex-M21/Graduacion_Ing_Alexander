@@ -89,7 +89,6 @@
     const text=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Alexander Mejia//Graduacion//ES","BEGIN:VEVENT","UID:alexander-graduacion-20261028","DTSTAMP:"+new Date().toISOString().replace(/[-:]/g,"").replace(".000",""),"DTSTART:20261028T160000Z","SUMMARY:Graduación Ing. Alexander Mejía","LOCATION:Auditorio Francisco Vela - Campus Central zona 12 - cerca del edificio T3","DESCRIPTION:Lleva identificación de estudiante o DPI y confirma tu asistencia en la invitación.","END:VEVENT","END:VCALENDAR"].join("\r\n");
     const url=URL.createObjectURL(new Blob([text],{type:"text/calendar;charset=utf-8"})); const a=document.createElement("a");a.href=url;a.download="graduacion-alexander.ics";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
   });
-  $("admin-link").href=apiBase+"/admin";
   const venueButtons=Array.from(document.querySelectorAll("[data-venue]"));
   const venuePhotos=venueButtons.map(button=>({kind:"photo",url:new URL(button.dataset.src,location.href).href,caption:button.dataset.caption,alt:button.querySelector("img").alt}));
   venueButtons.forEach((button,index)=>button.addEventListener("click",()=>openViewer("venue",venuePhotos,index,button)));
