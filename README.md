@@ -2,6 +2,8 @@
 
 Invitación web en **gris, naranja y blanco**, con registro directo y álbum compartido de fotos y videos.
 
+**[Abrir invitación en GitHub Pages](https://alex-m21.github.io/Graduacion_Ing_Alexander/)** — publicación verificada, con formulario accesible sin iniciar sesión.
+
 **28 de octubre de 2026, 10:00 a. m.** · Auditorio Francisco Vela, Campus Central, zona 12, cerca del edificio T3.
 
 - Interfaz estática para GitHub Pages: [`docs/`](docs/).
