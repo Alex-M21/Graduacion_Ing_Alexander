@@ -5,6 +5,7 @@
   const apiBase = (config.apiBase || location.origin).replace(/\/$/,"");
   const storageKey = "graduacion-guest-pass";
   let pass = "", me = null, editing = false, busy = false, media = [], cursor = null, paged = false, filter = "all";
+  let pdfUrl="",pdfFor="",pdfVersion=0,pdfPending=false,pdfModulePromise;
   try { pass = localStorage.getItem(storageKey) || ""; } catch {}
   const restored = new URLSearchParams(location.hash.slice(1)).get("acceso");
   function savePass(value) { pass=value; try { localStorage.setItem(storageKey,value); } catch {} }
@@ -20,6 +21,37 @@
     if(!response.ok) throw new Error(data.error || "Intenta de nuevo.");
     return data;
   }
+  function syncPersonalInvitation() {
+    const name=!editing && me?.guest?.attendance==="yes" ? me.guest.fullName : "";
+    $("personal-invitation").hidden=!name || editing;
+    if(name===pdfFor) return;
+    pdfVersion++;pdfFor=name;pdfPending=false;
+    if(pdfUrl) URL.revokeObjectURL(pdfUrl);pdfUrl="";
+    $("download-invitation").hidden=true;$("download-invitation").removeAttribute("href");
+    $("prepare-invitation").hidden=false;$("prepare-invitation").disabled=false;
+    message("invitation-status","");
+  }
+  async function preparePersonalInvitation() {
+    if(pdfPending || me?.guest?.attendance!=="yes") return;
+    if(pdfUrl) {$("download-invitation").click();return;}
+    const version=pdfVersion,name=me.guest.fullName;
+    pdfPending=true;$("prepare-invitation").disabled=true;
+    message("invitation-status","Preparando tu invitación personalizada…");
+    try {
+      if(!pdfModulePromise) pdfModulePromise=import(new URL("./invitation/personalize.js",location.href).href).catch(error=>{pdfModulePromise=null;throw error;});
+      const {createPersonalInvitation}=await pdfModulePromise;
+      const result=await createPersonalInvitation(name);
+      if(version!==pdfVersion || me?.guest?.attendance!=="yes" || me.guest.fullName!==name) return;
+      pdfUrl=URL.createObjectURL(result.blob);
+      const link=$("download-invitation");link.href=pdfUrl;link.download=result.filename;link.hidden=false;
+      $("prepare-invitation").hidden=true;
+      message("invitation-status","Tu invitación está lista. Si la descarga no comienza, pulsa «Descargar mi invitación PDF».");
+      link.click();
+    } catch {
+      if(version===pdfVersion) message("invitation-status","Tu asistencia está guardada. No pudimos preparar el PDF; revisa tu conexión y pulsa el botón para intentar de nuevo.");
+    } finally {if(version===pdfVersion) {pdfPending=false;$("prepare-invitation").disabled=false;}}
+  }
+  $("prepare-invitation").addEventListener("click",()=>void preparePersonalInvitation());
   function renderRegistration() {
     $("register-loading").hidden=true; $("register-connection-error").hidden=true;
     const showConfirmation=!!me?.guest && !editing;
@@ -43,6 +75,7 @@
     $("mobile-action-link").href=canEnter ? "#album" : "#registro";
     $("mobile-action-link").textContent=canEnter ? "Ver fotos y videos ↗" : attending && !editing ? "Ver mi confirmación ↗" : "Confirmar asistencia ↗";
     $("mobile-action-note").textContent=attending ? "¡Ya estás en la lista!" : "28 OCT · 10:00 a. m.";
+    syncPersonalInvitation();
   }
   async function refreshMe() {
     try { const wasOpen=me?.guest?.attendance==="yes" && me.albumOpen; me=await api("/api/me"); renderRegistration(); if(!wasOpen && me.guest?.attendance==="yes" && me.albumOpen) await loadMedia(); }
@@ -61,6 +94,7 @@
       form.reset(); editing=false; await refreshMe();
       message("registration-notice","Tu confirmación está guardada. Pulsa «Guardar mi acceso privado» para copiar tu enlace y conservarlo.");
       if(me?.guest) { $("confirmed-title").focus({preventScroll:true}); $("confirmed-state").scrollIntoView({block:"nearest",behavior:matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth"}); celebrateConfirmation(); }
+      void preparePersonalInvitation();
     } catch(error) { message("form-error",error.message); }
     finally { busy=false; $("submit-rsvp").disabled=false; $("submit-rsvp").innerHTML='Confirmar mi asistencia <span aria-hidden="true">↗</span>'; }
   });

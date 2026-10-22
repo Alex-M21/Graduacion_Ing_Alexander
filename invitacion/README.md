@@ -6,6 +6,7 @@ Diseño en azul marino, dorado y marfil, inspirado en la invitación proporciona
 
 - Confirmación directa en una sola pantalla: nombre completo, correo, CUI y consentimiento. Sin crear una cuenta ni elegir pasos adicionales.
 - Registro cifrado en el servidor y pase privado de recuperación. El CUI se valida por formato, sin consultar RENAP ni acreditar identidad.
+- Invitación PDF personalizada al confirmar: conserva el documento de la Facultad y añade el nombre del invitado, «Ing. Alexander Mejía», fecha y lugar. Se prepara en el navegador y ofrece descarga automática con botón para repetirla; no incluye CUI, correo ni pase privado. Las correcciones de nombre invalidan el PDF anterior.
 - Álbum de fotos y videos abierto desde el 22 de octubre a las 00:00, hora de Guatemala, solo para invitados confirmados. Permite compartir recuerdos antes de la graduación. Cada cuenta de invitado puede compartir hasta 50 archivos, seleccionando hasta 10 por envío.
 - Fotos JPG/PNG/WebP de hasta 8 MB en el servidor; el navegador convierte originales de hasta 20 MB a JPEG y elimina sus metadatos. Videos MP4/MOV/WebM de hasta 50 MB, con progreso de subida y reproducción por rangos. La reproducción depende del códec del navegador.
 - Galería con filtros, paginación y vista ampliada; sin opciones para editar ni borrar. Las rutas del servidor también rechazan esas operaciones.
@@ -13,7 +14,7 @@ Diseño en azul marino, dorado y marfil, inspirado en la invitación proporciona
 
 ## GitHub Pages y Drive
 
-La interfaz pública usa HTML/CSS/JavaScript sin dependencias y está preparada en `../docs/`. El servidor de Sites mantiene permisos, cifrado, registro y archivos privados. Pages no ejecuta ese servidor ni contiene los datos de los invitados.
+La interfaz pública usa HTML/CSS/JavaScript y está preparada en `../docs/`. PDF-LIB 1.17.1 se distribuye localmente con su licencia y se carga solo al preparar una invitación PDF. El servidor de Sites mantiene permisos, cifrado, registro y archivos privados. Pages no ejecuta ese servidor ni contiene los datos de los invitados.
 
 La integración con Drive está implementada, pero se activa únicamente después de autorizarla en Google y conectar sus datos desde el panel privado. No se ha conectado automáticamente por escribir un correo de Gmail ni por compartir una carpeta.
 
@@ -86,10 +87,13 @@ node --test tests/api.test.mjs
 node --test tests/drive.test.mjs
 node scripts/qa-browser.mjs
 node scripts/qa-gallery.mjs
+node scripts/qa-invitation-pdf.mjs
 ```
 
 La prueba de navegador requiere el servidor local, una clave de pruebas y Chrome instalado. Escribe registros sintéticos solo en la base local y prueba la reproducción con un video generado en el navegador. `CHROME_PATH` permite indicar el ejecutable. La API se prueba en un Worker con D1/R2 efímeros. La integración de Drive se prueba con respuestas simuladas: la autorización real y el guardado en tu cuenta deben verificarse al conectarla.
 
 `qa-gallery.mjs` comprueba las fotos del lugar, el visor con teclado y deslizamiento, la cuadrícula en varios tamaños y los filtros de fotos y videos. Su colección del día del evento se simula solo en el navegador: no crea invitados ni sube archivos al servidor. Guarda capturas en `.sites-runtime/gallery/`.
+
+`qa-invitation-pdf.mjs` usa un servidor local (`QA_BASE_URL`, por defecto `http://127.0.0.1:8788/`) y simula el registro solo en el navegador. Verifica descarga de un PDF real, reintento tras fallo, tildes, nombres largos, corrección de nombre, regreso del invitado y retiro de asistencia; guarda ejemplos en `.sites-runtime/invitation-pdf/`. No escribe registros ni archivos en un servidor alojado.
 
 Conservar `CUI_ENCRYPTION_KEY` y `ADMIN_EMAIL` en el entorno del servidor. No registrar ni publicar credenciales, pases ni CSV con invitados. Mantener el `project_id` de `.openai/hosting.json`; seguir el flujo de Sites para publicar el servidor. El workflow de la raíz publica únicamente `docs/` en GitHub Pages.

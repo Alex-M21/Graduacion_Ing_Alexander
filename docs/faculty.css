@@ -149,6 +149,11 @@ body{background:var(--ivory);color:var(--navy)}
 @media(prefers-reduced-motion:reduce){.hero-photo,.hero-keepsake,.photo-date-stamp,.memory-print{translate:none}.celebration-burst{display:none}.hero-photo{transform:none}}
 
 /* A few visible languages, a few quiet clues, and a place to join from afar. */
+.personal-invitation{margin:23px 0;padding:20px 18px;border:1px solid #d8c6a4;border-radius:25px 25px 8px 25px;background:linear-gradient(125deg,#fff,#faf6ed)}
+.personal-invitation h4{font-size:18px;line-height:1.5;color:var(--navy);margin:0 0 8px;letter-spacing:-.3px}
+.personal-invitation>p:not(.notice){font-size:13px;line-height:1.8;color:var(--muted);margin-bottom:15px}
+.personal-invitation .button{font-size:13px;gap:12px;min-height:48px}
+.personal-invitation .notice{font-size:12px;color:var(--muted);line-height:1.7;margin-bottom:0}
 .language-ribbon{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:22px;max-width:100%}
 .language-mark{display:grid;place-items:center;width:38px;height:40px;border-radius:12px;background:#f7f9fc;border:1px solid #e5eaf1;transition:transform .25s,background .25s}
 .language-mark img{width:23px;height:23px;display:block}
