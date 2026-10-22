@@ -182,13 +182,13 @@ nav>a{min-height:44px;display:inline-flex;align-items:center}
 .viewer .error{background:white;padding:15px}
 .viewer :focus-visible{outline:2px solid var(--orange)}
 .celebration-rain{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:10;contain:strict}
-.celebration-particle{position:absolute;top:-60px;left:var(--left);font-size:var(--size);line-height:1;animation:celebration-fall var(--duration) linear var(--delay) infinite;will-change:transform;opacity:0;user-select:none}
+.celebration-particle{position:absolute;top:-60px;left:var(--left);font-size:var(--size);line-height:1;animation:celebration-fall var(--duration) linear var(--delay);will-change:transform;opacity:0;user-select:none}
 .effects-paused .celebration-rain{visibility:hidden}
 .effects-paused .celebration-particle,.effects-paused .ticket-art svg,.effects-paused .title-star{animation-play-state:paused}
 .title-star{animation:star-turn 16s linear infinite}
 .reveal-ready{opacity:0;transform:translateY(18px);transition:opacity .6s ease,transform .6s ease}
 .reveal-ready.is-visible{opacity:1;transform:none}
-@keyframes celebration-fall{0%{transform:translate3d(0,-50px,0) rotate(0deg);opacity:0}8%{opacity:.65}88%{opacity:.65}100%{transform:translate3d(var(--drift),calc(100vh + 110px),0) rotate(var(--spin));opacity:0}}
+@keyframes celebration-fall{0%{transform:translate3d(0,-50px,0) rotate(var(--start-angle,0deg));opacity:0}8%{opacity:var(--peak-opacity,.65)}40%{transform:translate3d(var(--sway,0px),40vh,0) rotate(var(--mid-angle,100deg))}88%{opacity:var(--peak-opacity,.65)}100%{transform:translate3d(var(--drift),calc(100vh + 110px),0) rotate(var(--end-angle,240deg));opacity:0}}
 @keyframes cap-float{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-9px) rotate(2deg)}}
 @keyframes star-turn{to{transform:rotate(360deg)}}
 @keyframes loading-pulse{to{opacity:.35}}

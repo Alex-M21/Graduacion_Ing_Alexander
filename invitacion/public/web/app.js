@@ -239,23 +239,42 @@
   const smallScreen=matchMedia("(max-width: 760px)");
   let effectsEnabled=true;
   try {effectsEnabled=sessionStorage.getItem("graduacion-effects")!=="off";} catch {}
+  const celebrationEmojis=["🎓","🎓","🎊","🎉","✨"];
+  const randomBetween=(min,max)=>min+Math.random()*(max-min);
+  function makeRainParticle(initial=false) {
+    const mobile=smallScreen.matches;
+    const piece=document.createElement("span");piece.className="celebration-particle";
+    piece.textContent=celebrationEmojis[Math.floor(Math.random()*celebrationEmojis.length)];
+    const duration=randomBetween(10,21),angle=randomBetween(-180,180),spin=randomBetween(-540,540);
+    const properties={
+      "--left":randomBetween(0,100).toFixed(2)+"%",
+      "--size":randomBetween(mobile ? 16 : 19,mobile ? 27 : 34).toFixed(1)+"px",
+      "--duration":duration.toFixed(2)+"s",
+      "--delay":(initial ? -Math.random()*duration : randomBetween(.15,2.5)).toFixed(2)+"s",
+      "--drift":randomBetween(mobile ? -80 : -150,mobile ? 80 : 150).toFixed(1)+"px",
+      "--sway":randomBetween(-38,38).toFixed(1)+"px",
+      "--start-angle":angle.toFixed(1)+"deg",
+      "--mid-angle":(angle+spin*.45).toFixed(1)+"deg",
+      "--end-angle":(angle+spin).toFixed(1)+"deg",
+      "--peak-opacity":randomBetween(.35,.7).toFixed(2)
+    };
+    for(const [name,value] of Object.entries(properties)) piece.style.setProperty(name,value);
+    return piece;
+  }
   function createRain() {
     const layer=$("celebration-rain");layer.replaceChildren();
     if(reducedMotion.matches) return;
     const count=smallScreen.matches ? 16 : 28;
-    const emojis=["🎓","🎊","🎓","🎉","✨","🎓","🎊"];
     const particles=document.createDocumentFragment();
-    for(let i=0;i<count;i++) {
-      const piece=document.createElement("span");piece.className="celebration-particle";piece.textContent=emojis[i%emojis.length];
-      piece.style.setProperty("--left",((i+.3)/count*100).toFixed(2)+"%");
-      piece.style.setProperty("--size",(smallScreen.matches ? 17+i%4*2 : 20+i%5*2)+"px");
-      piece.style.setProperty("--duration",(11+i%7)+"s");
-      piece.style.setProperty("--delay",(-i*1.83)+"s");
-      piece.style.setProperty("--drift",(i%2 ? 38 : -38)+"px");
-      piece.style.setProperty("--spin",(i%2 ? 240 : -240)+"deg");particles.append(piece);
-    }
+    for(let i=0;i<count;i++) particles.append(makeRainParticle(true));
     layer.append(particles);
   }
+  // Re-roll each emoji after it leaves the screen; keep the particle count fixed.
+  $("celebration-rain").addEventListener("animationend",event=>{
+    const piece=event.target;
+    if(event.animationName!=="celebration-fall" || piece.parentNode!==$("celebration-rain") || reducedMotion.matches) return;
+    piece.replaceWith(makeRainParticle());
+  });
   function updateEffects() {
     const active=effectsEnabled && !reducedMotion.matches;
     document.documentElement.classList.toggle("effects-paused",!active || document.hidden);
