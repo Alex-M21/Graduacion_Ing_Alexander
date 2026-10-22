@@ -149,6 +149,7 @@ body{background:var(--ivory);color:var(--navy)}
 @media(prefers-reduced-motion:reduce){.hero-photo,.hero-keepsake,.photo-date-stamp,.memory-print{translate:none}.celebration-burst{display:none}.hero-photo{transform:none}}
 
 /* A few visible languages, a few quiet clues, and a place to join from afar. */
+.album-viewing-paused{margin-top:22px;border:1px solid #d8c6a4;padding:23px;border-radius:27px 27px 8px 27px;background:#faf6ed;color:var(--navy)}.album-viewing-paused strong{font-size:20px;line-height:1.5}.album-viewing-paused p{font-size:14px;line-height:1.8;color:var(--muted);margin-top:9px}
 .personal-invitation{margin:23px 0;padding:20px 18px;border:1px solid #d8c6a4;border-radius:25px 25px 8px 25px;background:linear-gradient(125deg,#fff,#faf6ed)}
 .personal-invitation h4{font-size:18px;line-height:1.5;color:var(--navy);margin:0 0 8px;letter-spacing:-.3px}
 .personal-invitation>p:not(.notice){font-size:13px;line-height:1.8;color:var(--muted);margin-bottom:15px}

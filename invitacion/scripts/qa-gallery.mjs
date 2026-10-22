@@ -61,7 +61,7 @@ try {
   await send('Page.addScriptToEvaluateOnNewDocument',{source:`(() => {
     const fetchOriginal=window.fetch.bind(window);
     const photoUrls=['jardin-campus.jpeg','ingenieria-usac.jpeg','rincon-campus.jpeg','auditorio.jpeg'];
-    window.__qaDelayAccess=false;window.__qaAccessTrace=[];
+    window.__qaDelayAccess=false;window.__qaAccessTrace=[];window.__qaRemovedIds=[];window.__qaViewingEnabled=true;
     let clip;const getClip=()=>clip ||= (async()=>{
       const canvas=document.createElement('canvas');canvas.width=320;canvas.height=180;
       const ctx=canvas.getContext('2d'),stream=canvas.captureStream(0),track=stream.getVideoTracks()[0],recorder=new MediaRecorder(stream,{mimeType:'video/webm;codecs=vp8'}),chunks=[];
@@ -72,8 +72,8 @@ try {
     const photos=Array.from({length:9},(_,i)=>({id:'fixture-'+i,kind:i===2?'video':'photo',url:new URL('venue/'+photoUrls[i%4],location.href).href,createdAt:'2026-10-28T16:00:00Z',contentType:i===2?'video/webm':'image/jpeg'}));
     window.fetch=async(input,options)=>{
       const u=new URL(typeof input==='string'?input:input.url,location.origin);
-      if(u.pathname==='/api/me')return Response.json({albumOpen:true,isAdmin:false,guest:{fullName:'Prueba local de galería',email:'qa@example.test',attendance:'yes'}});
-      if(u.pathname==='/api/photos')return Response.json({photos,nextCursor:null});
+      if(u.pathname==='/api/me')return Response.json({albumOpen:true,albumViewingEnabled:window.__qaViewingEnabled,isAdmin:false,guest:{fullName:'Prueba local de galería',email:'qa@example.test',attendance:'yes'}});
+      if(u.pathname==='/api/photos')return Response.json({photos:photos.filter(p=>!window.__qaRemovedIds.includes(p.id)),nextCursor:null});
       if(u.pathname.startsWith('/api/photos/fixture-')&&u.pathname.endsWith('/access')){
         window.__qaAccessTrace.push(u.pathname);
         if(window.__qaDelayAccess)await new Promise(r=>setTimeout(r,700));
@@ -110,6 +110,14 @@ try {
   // Closing a loading private photo must prevent an old response reopening it.
   await evaluate('window.__qaDelayAccess=true;document.querySelector("[data-filter=photo]").click();document.querySelector(".media-item").click();document.querySelector("#close-viewer").click()');await pause(1000);
   assert.equal(await evaluate('!document.querySelector("#viewer").open && document.querySelector("#viewer-content").children.length===0'),true,'late response stays closed');
+  await evaluate('window.__qaRemovedIds.push("fixture-0");document.querySelector("#refresh-album").click()');await waitFor('!document.querySelector("#refresh-album").disabled');
+  assert.equal(await evaluate('document.querySelectorAll(".media-item").length'),7,'refresh removes a moderated photo');
+  // Refreshing the guest state hides viewing controls while uploads stay usable.
+  await evaluate('window.__qaViewingEnabled=false;document.querySelector("#retry-me").click()');await waitFor('document.querySelector("#album-gallery").hidden');
+  assert.equal(await evaluate('document.querySelector("#album-viewing-paused").hidden'),false);
+  assert.equal(await evaluate('document.querySelector("#album-content").hidden'),false);
+  assert.equal(await evaluate('document.querySelector("#choose-media").disabled'),false);
+  await evaluate('window.__qaViewingEnabled=true;document.querySelector("#retry-me").click()');await waitFor('!document.querySelector("#album-gallery").hidden && document.querySelectorAll(".media-item").length===7');
   assert.deepEqual(exceptions,[]);
   console.log('Gallery QA passed: venue photos, keyboard and swipe navigation, focus return, phone image fit, masonry at five sizes, initial photo/video deep links and hash changes, persistent filters, WebM playback and safe close during loading. Collection data was mocked; no hosted records or files were written.');
 } finally {socket?.close();chrome.kill();}

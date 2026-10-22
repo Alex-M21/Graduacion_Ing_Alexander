@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { and, desc, eq, lt, or, count, isNull, notLike } from "drizzle-orm";
+import { and, desc, eq, lt, or, count, isNull, isNotNull, like, notLike, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { guests, photos } from "@/db/schema";
 import { getChatGPTUser } from "@/app/chatgpt-auth";
@@ -8,6 +8,7 @@ import { albumIsOpen, encryptCui, decryptCui, hashCui, normalizeRegistration, cs
 import { MediaError, byteRange, storeMedia } from "@/lib/media";
 import { guestPassHash, newGuestPass, mediaUrl, mediaGuest } from "@/lib/guest-access";
 import {getDriveConnection,saveDriveConnection,driveCall,DriveStore,type DriveConnection} from "@/lib/drive";
+import {albumViewingEnabled,setAlbumViewingEnabled} from "@/lib/album-visibility";
 
 export const dynamic = "force-dynamic";
 const noCache = { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff", "Referrer-Policy":"no-referrer" };
@@ -54,6 +55,26 @@ async function mirrorIfConnected(userId: string,key: string) {
   try {const connection=await getDriveConnection(key);if(!connection) return false;const guest=await getDb().query.guests.findFirst({where:eq(guests.userId,userId)});if(guest) await mirrorGuest(connection,guest,key);return false;}
   catch {return true;} // The issued private pass must still reach the guest; pending copies are retried from the admin panel.
 }
+function mediaCursor(url:URL) {
+  if(!url.searchParams.has("cursor")) return null;
+  try {
+    const value=JSON.parse(atob(url.searchParams.get("cursor")!));
+    if(!value || !/^\d{4}-/.test(value.date) || !/^[a-f0-9-]{36}$/.test(value.id)) throw 0;
+    return value as {date:string;id:string};
+  } catch {throw new MediaError("Página inválida.",400);}
+}
+async function readMedia(request:Request,media:typeof photos.$inferSelect) {
+  let range;
+  try {range=request.headers.has("if-range") ? null : byteRange(request.headers.get("range"),media.bytes);}
+  catch {return new Response(null,{status:416,headers:{...noCache,"Content-Range":`bytes */${media.bytes}`,"Accept-Ranges":"bytes"}});}
+  const headers:Record<string,string>={...noCache,"Content-Type":media.contentType,"Content-Length":String(range?.length ?? media.bytes),"Content-Disposition":"inline","Accept-Ranges":"bytes"};
+  if(range) headers["Content-Range"]=`bytes ${range.offset}-${range.offset+range.length-1}/${media.bytes}`;
+  if(request.method==="HEAD") return new Response(null,{status:range ? 206 : 200,headers});
+  const connection=media.objectKey.startsWith("drive:") ? await getDriveConnection(env.CUI_ENCRYPTION_KEY!) : null;
+  if(media.objectKey.startsWith("drive:") && !connection) return json({error:"La conexión del álbum no está disponible."},503);
+  const object=connection ? await new DriveStore(connection).get(media.objectKey,range ?? undefined) : await env.BUCKET?.get(media.objectKey,range ? {range} : undefined);
+  return object ? new Response(object.body,{status:range ? 206 : 200,headers}) : json({error:"Recuerdo no encontrado."},404);
+}
 async function dispatch(request: Request): Promise<Response> {
   try {
     const url = new URL(request.url); const path = url.pathname.replace(/\/$/,"");
@@ -73,7 +94,7 @@ async function dispatch(request: Request): Promise<Response> {
     }
     const isAdmin = !!env.ADMIN_EMAIL && !!user && user.email.toLowerCase() === env.ADMIN_EMAIL.trim().toLowerCase();
     if (path === "/api/me" && request.method === "GET") return json({
-      email:user?.email ?? "",isAdmin,albumOpen:albumIsOpen(event.albumOpensAt),
+      email:user?.email ?? "",isAdmin,albumOpen:albumIsOpen(event.albumOpensAt),albumViewingEnabled:await albumViewingEnabled(env.CUI_ENCRYPTION_KEY),
       guest:guest ? {fullName:guest.fullName,email:guest.email,attendance:guest.attendance} : null
     });
     if (path === "/api/rsvp" && request.method === "POST") {
@@ -132,6 +153,55 @@ async function dispatch(request: Request): Promise<Response> {
       }
       return json({error:"Ruta no encontrada."},404);
     }
+    if(path==="/api/admin/media" || path.startsWith("/api/admin/media/")) {
+      if(!isAdmin) return json({error:"Acceso reservado al organizador."},403);
+      if(!env.CUI_ENCRYPTION_KEY) return json({error:"El álbum no está disponible."},503);
+      if(path==="/api/admin/media/settings" && request.method==="POST") {
+        let body;try {body=JSON.parse(new TextDecoder().decode(await readLimited(request,512)));}catch {return json({error:"Respuesta inválida."},400);}
+        if(typeof body.viewingEnabled!=="boolean") return json({error:"Respuesta inválida."},400);
+        await setAlbumViewingEnabled(body.viewingEnabled,env.CUI_ENCRYPTION_KEY);
+        return json({ok:true,viewingEnabled:body.viewingEnabled});
+      }
+      if(path==="/api/admin/media" && request.method==="GET") {
+        const cursor=mediaCursor(url),kind=url.searchParams.get("kind"),visibility=url.searchParams.get("visibility");
+        if(kind && !["all","photo","video"].includes(kind) || visibility && !["all","visible","hidden"].includes(visibility)) return json({error:"Filtro inválido."},400);
+        const conditions=[kind==="video" ? like(photos.contentType,"video/%") : kind==="photo" ? notLike(photos.contentType,"video/%") : undefined,visibility==="hidden" ? isNotNull(photos.hiddenAt) : visibility==="visible" ? isNull(photos.hiddenAt) : undefined,cursor ? or(lt(photos.createdAt,cursor.date),and(eq(photos.createdAt,cursor.date),lt(photos.id,cursor.id))) : undefined];
+        const rows=await db.select({id:photos.id,createdAt:photos.createdAt,contentType:photos.contentType,bytes:photos.bytes,hiddenAt:photos.hiddenAt,uploaderName:guests.fullName}).from(photos).leftJoin(guests,eq(photos.userId,guests.userId)).where(and(...conditions)).orderBy(desc(photos.createdAt),desc(photos.id)).limit(31);
+        const [totals]=await db.select({files:count(),bytes:sql<number>`coalesce(sum(${photos.bytes}),0)`,hidden:sql<number>`coalesce(sum(case when ${photos.hiddenAt} is not null then 1 else 0 end),0)`}).from(photos);
+        const items=rows.slice(0,30),last=items.at(-1);
+        return json({media:items.map(item=>({...item,kind:item.contentType.startsWith("video/") ? "video" : "photo",url:"/api/admin/media/"+item.id+"/file"})),stats:{files:Number(totals.files),bytes:Number(totals.bytes),hidden:Number(totals.hidden)},viewingEnabled:await albumViewingEnabled(env.CUI_ENCRYPTION_KEY),nextCursor:rows.length>30 && last ? btoa(JSON.stringify({date:last.createdAt,id:last.id})) : null});
+      }
+      const match=/^\/api\/admin\/media\/([a-f0-9-]{36})(\/file|\/visibility)?$/.exec(path);
+      if(!match) return json({error:"Ruta no encontrada."},404);
+      const item=await db.query.photos.findFirst({where:eq(photos.id,match[1])});
+      if(!item) return json({error:"Recuerdo no encontrado."},404);
+      if(match[2]==="/file" && ["GET","HEAD"].includes(request.method)) return await readMedia(request,item);
+      if(match[2]==="/visibility" && request.method==="POST") {
+        let body;try {body=JSON.parse(new TextDecoder().decode(await readLimited(request,512)));}catch {return json({error:"Respuesta inválida."},400);}
+        if(typeof body.hidden!=="boolean") return json({error:"Respuesta inválida."},400);
+        await db.update(photos).set({hiddenAt:body.hidden ? new Date().toISOString() : null}).where(eq(photos.id,item.id));
+        return json({ok:true});
+      }
+      if(!match[2] && request.method==="DELETE") {
+        // Revoke public access before touching storage. Failed deletion remains
+        // hidden so the organizer can retry without exposing the file again.
+        await db.update(photos).set({hiddenAt:item.hiddenAt || new Date().toISOString()}).where(eq(photos.id,item.id));
+        try {
+          if(item.objectKey.startsWith("drive:")) {
+            const connection=await getDriveConnection(env.CUI_ENCRYPTION_KEY);
+            if(!connection) throw new Error("Drive unavailable");
+            await new DriveStore(connection).delete(item.objectKey);
+            await env.BUCKET?.delete("event/photos/"+item.id); // Remove an older R2 backup too.
+          } else {
+            if(!env.BUCKET) throw new Error("Storage unavailable");
+            await env.BUCKET.delete(item.objectKey);
+          }
+          await db.delete(photos).where(eq(photos.id,item.id));
+        } catch {return json({error:"El archivo quedó oculto, pero no pudimos eliminarlo por completo. Revisa el almacenamiento e intenta otra vez."},503);}
+        return json({ok:true});
+      }
+      return json({error:"Operación no permitida."},405);
+    }
     const deleteGuest=/^\/api\/admin\/guests\/([a-zA-Z0-9_-]{1,100})$/.exec(path);
     if(deleteGuest && request.method==="DELETE") {
       if(!isAdmin) return json({error:"Acceso reservado al organizador."},403);
@@ -162,27 +232,17 @@ async function dispatch(request: Request): Promise<Response> {
       if (guest?.attendance !== "yes") return json({error:"Confirma tu asistencia o abre tu enlace privado para entrar al álbum."},403);
       if (!albumIsOpen(event.albumOpensAt)) return json({error:"El álbum todavía no está disponible. Intenta de nuevo más tarde."},403);
       if (!env.CUI_ENCRYPTION_KEY) return json({error:"El álbum no está disponible. Intenta más tarde."},503);
+      if(["GET","HEAD"].includes(request.method) && !await albumViewingEnabled(env.CUI_ENCRYPTION_KEY)) return json({error:"El organizador ha pausado la visualización del álbum. Puedes seguir compartiendo tus recuerdos."},403);
       if (mediaMatch) {
         if (request.method !== "GET" && request.method !== "HEAD") return json({error:"No se permite modificar ni borrar fotos ni videos."},405);
         const media = await db.query.photos.findFirst({where:eq(photos.id,mediaMatch[1])});
-        if (!media) return json({error:"Recuerdo no encontrado."},404);
+        if (!media || media.hiddenAt) return json({error:"Recuerdo no encontrado."},404);
         if (mediaMatch[2]) return json({url:await mediaUrl(media.id,guest.userId,env.CUI_ENCRYPTION_KEY)});
-        let range;
-        try { range = request.headers.has("if-range") ? null : byteRange(request.headers.get("range"),media.bytes); }
-        catch { return new Response(null,{status:416,headers:{...noCache,"Content-Range":`bytes */${media.bytes}`,"Accept-Ranges":"bytes"}}); }
-        const headers: Record<string,string> = {...noCache,"Content-Type":media.contentType,"Content-Length":String(range?.length ?? media.bytes),"Content-Disposition":"inline","Accept-Ranges":"bytes"};
-        if (range) headers["Content-Range"] = `bytes ${range.offset}-${range.offset+range.length-1}/${media.bytes}`;
-        if (request.method === "HEAD") return new Response(null,{status:range ? 206 : 200,headers});
-        const connection=media.objectKey.startsWith("drive:") ? await getDriveConnection(env.CUI_ENCRYPTION_KEY) : null;
-        if(media.objectKey.startsWith("drive:") && !connection) return json({error:"La conexión del álbum no está disponible."},503);
-        const object = connection ? await new DriveStore(connection).get(media.objectKey,range ?? undefined) : await env.BUCKET?.get(media.objectKey,range ? {range} : undefined);
-        if (!object) return json({error:"Recuerdo no encontrado."},404);
-        return new Response(object.body,{status:range ? 206 : 200,headers});
+        return await readMedia(request,media);
       }
       if (request.method === "GET") {
-        let cursor: {date:string;id:string} | null = null;
-        if (url.searchParams.has("cursor")) { try { cursor = JSON.parse(atob(url.searchParams.get("cursor")!)); if (!cursor || !/^\d{4}-/.test(cursor.date) || !/^[a-f0-9-]{36}$/.test(cursor.id)) throw 0; } catch { return json({error:"Página inválida."},400); } }
-        const rows = await db.select({id:photos.id,createdAt:photos.createdAt,contentType:photos.contentType}).from(photos).where(cursor ? or(lt(photos.createdAt,cursor.date),and(eq(photos.createdAt,cursor.date),lt(photos.id,cursor.id))) : undefined).orderBy(desc(photos.createdAt),desc(photos.id)).limit(31);
+        const cursor=mediaCursor(url);
+        const rows = await db.select({id:photos.id,createdAt:photos.createdAt,contentType:photos.contentType}).from(photos).where(and(isNull(photos.hiddenAt),cursor ? or(lt(photos.createdAt,cursor.date),and(eq(photos.createdAt,cursor.date),lt(photos.id,cursor.id))) : undefined)).orderBy(desc(photos.createdAt),desc(photos.id)).limit(31);
         const items = rows.slice(0,30); const last = items.at(-1);
         return json({photos:await Promise.all(items.map(async item=>({...item,kind:item.contentType.startsWith("video/") ? "video" : "photo",url:await mediaUrl(item.id,guest!.userId,env.CUI_ENCRYPTION_KEY!)}))),nextCursor:rows.length > 30 && last ? btoa(JSON.stringify({date:last.createdAt,id:last.id})) : null});
       }

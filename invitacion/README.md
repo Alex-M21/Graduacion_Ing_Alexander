@@ -12,6 +12,8 @@ Diseño en azul marino, dorado y marfil, inspirado en la invitación proporciona
 - Galería con filtros, paginación y vista ampliada; sin opciones para editar ni borrar. Las rutas del servidor también rechazan esas operaciones.
 - Listado y conexión de Drive reservados al correo del organizador, autenticado por Sites. Los invitados no necesitan ChatGPT ni Google.
 - El organizador puede eliminar un registro desde `/admin`, con confirmación. Se borran sus datos y se revoca su acceso; sus fotos y videos permanecen en el álbum sin vincularlos al registro eliminado. Si Drive está conectado, primero se elimina la fila de Sheets; un fallo de esa conexión conserva el registro y muestra el error.
+- Moderación privada en `/admin`: lista paginada de fotos y videos con filtros, vista previa, tamaño del álbum, ocultar/restaurar y eliminación definitiva con confirmación. Ocultar bloquea también los enlaces privados ya emitidos. Los invitados nunca pueden moderar. Un fallo al eliminar el almacenamiento deja el archivo oculto para reintentar; al eliminar se conservan los datos del invitado.
+- Interruptor general de visualización en el administrador: pausa o activa la lectura del álbum para invitados, incluidas fotos, videos y enlaces ya emitidos. Las subidas y la revisión privada del organizador siguen disponibles. La invitación refleja el cambio al consultar el estado del servidor, automáticamente cada 30 segundos o al recargar.
 
 ## GitHub Pages y Drive
 
@@ -98,6 +100,6 @@ La prueba de navegador requiere el servidor local, una clave de pruebas y Chrome
 
 `qa-invitation-pdf.mjs` usa un servidor local (`QA_BASE_URL`, por defecto `http://127.0.0.1:8788/`) y simula el registro solo en el navegador. Verifica descarga de un PDF real, reintento tras fallo, tildes, nombres largos, corrección de nombre, regreso del invitado y retiro de asistencia; guarda ejemplos en `.sites-runtime/invitation-pdf/`. No escribe registros ni archivos en un servidor alojado.
 
-`qa-admin.mjs` revisa el panel con un servidor local de Sites (`QA_BASE_URL`, por defecto `http://127.0.0.1:8787`). Simula invitados y solicitudes DELETE en el navegador para comprobar cancelación, fallo, reintento, eliminación y totales actualizados. No elimina registros reales.
+`qa-admin.mjs` revisa el panel con un servidor local de Sites (`QA_BASE_URL`, por defecto `http://127.0.0.1:8787`). Simula invitados, archivos y operaciones en el navegador para comprobar eliminación de registros, moderación, filtros, pausa general, confirmaciones, fallos, reintentos y totales actualizados. No elimina registros ni archivos reales. `qa-gallery.mjs` también comprueba que los recuerdos retirados desaparezcan al actualizar y que pausar la visualización conserve los controles de subida.
 
 Conservar `CUI_ENCRYPTION_KEY` y `ADMIN_EMAIL` en el entorno del servidor. No registrar ni publicar credenciales, pases ni CSV con invitados. Mantener el `project_id` de `.openai/hosting.json`; seguir el flujo de Sites para publicar el servidor. El workflow de la raíz publica únicamente `docs/` en GitHub Pages.

@@ -22,11 +22,28 @@ try {
   await send('Page.enable');await send('Runtime.enable');
   await send('Page.addScriptToEvaluateOnNewDocument',{source:`(() => {
     const original=window.fetch.bind(window);window.__qaCalls=[];window.__qaFailDelete=true;
+    window.__qaMediaCalls=[];window.__qaFailMediaDelete=true;window.__qaViewingEnabled=true;
+    window.__qaMedia=[{id:'11111111-1111-4111-8111-111111111111',kind:'photo',url:'/venue/jardin-campus.jpeg',contentType:'image/jpeg',bytes:512000,createdAt:'2026-10-22T16:00:00Z',hiddenAt:null,uploaderName:'Bob Prueba'},{id:'22222222-2222-4222-8222-222222222222',kind:'video',url:'',contentType:'video/mp4',bytes:2621440,createdAt:'2026-10-22T16:00:00Z',hiddenAt:null,uploaderName:null}];
     window.__qaGuests=[{id:'guest_alice',fullName:'Alice Prueba',email:'alice@example.test',cui:'1234567890123',attendance:'yes'},{id:'guest_bob',fullName:'Bob Prueba',email:'bob@example.test',cui:'1234567890124',attendance:'yes'}];
     window.fetch=async(input,options={})=>{
       const u=new URL(input instanceof Request ? input.url : String(input),location.origin);
       if(u.pathname==='/api/admin/guests') return Response.json({guests:window.__qaGuests});
       if(u.pathname==='/api/admin/drive') return Response.json({connected:false,pendingGuests:0,pendingMedia:0});
+      if(u.pathname==='/api/admin/media') {
+        const kind=u.searchParams.get('kind'),visibility=u.searchParams.get('visibility');
+        return Response.json({media:window.__qaMedia.filter(m=>(!kind||kind==='all'||m.kind===kind)&&(!visibility||visibility==='all'||(visibility==='hidden')===!!m.hiddenAt)),stats:{files:window.__qaMedia.length,bytes:window.__qaMedia.reduce((n,m)=>n+m.bytes,0),hidden:window.__qaMedia.filter(m=>m.hiddenAt).length},viewingEnabled:window.__qaViewingEnabled,nextCursor:null});
+      }
+      if(u.pathname==='/api/admin/media/settings') {window.__qaViewingEnabled=JSON.parse(options.body).viewingEnabled;return Response.json({ok:true});}
+      if(u.pathname.startsWith('/api/admin/media/')) {
+        window.__qaMediaCalls.push({path:u.pathname,method:options.method,credentials:options.credentials});
+        const id=u.pathname.split('/')[4],item=window.__qaMedia.find(m=>m.id===id);
+        if(options.method==='POST')item.hiddenAt=JSON.parse(options.body).hidden ? '2026-10-22T16:00:00Z' : null;
+        if(options.method==='DELETE') {
+          if(window.__qaFailMediaDelete){item.hiddenAt='2026-10-22T16:00:00Z';return Response.json({error:'El archivo quedó oculto. Reintenta eliminarlo.'},{status:503});}
+          window.__qaMedia=window.__qaMedia.filter(m=>m.id!==id);
+        }
+        return Response.json({ok:true});
+      }
       if(u.pathname.startsWith('/api/admin/guests/') && options.method==='DELETE') {
         window.__qaCalls.push({path:u.pathname,credentials:options.credentials});
         if(window.__qaFailDelete)return Response.json({error:'Error de prueba: intenta de nuevo.'},{status:503});
@@ -36,7 +53,7 @@ try {
     };
   })();`});
   await send('Page.navigate',{url:base+'/admin'});
-  await waitFor('document.querySelectorAll(".admin-delete").length===2 && !document.querySelector(".admin-delete").disabled');
+  await waitFor('document.querySelectorAll("tbody .admin-delete").length===2 && !document.querySelector("tbody .admin-delete").disabled');
   for(const width of [320,390,1440]) {
     await send('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<=760});
     assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'),true,'admin fits '+width);
@@ -56,7 +73,34 @@ try {
   assert.equal(await evaluate('document.querySelector(".summary").textContent.startsWith("1 asistencias")'),true);
   assert.equal(await evaluate('document.querySelector(".admin-notice").textContent.includes("Alice Prueba")'),true);
   assert.equal(await evaluate('window.__qaCalls.at(-1).credentials'),'same-origin');
+  await waitFor('document.querySelectorAll(".moderation-card").length===2');
+  for(const width of [320,390,1440]) {
+    await send('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<=760});
+    assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'),true,'moderation fits '+width);
+  }
+  await evaluate('document.querySelector(".moderation-switch").click()');await waitFor('document.querySelector(".moderation-switch").getAttribute("aria-checked")==="false" && !document.querySelector(".moderation-switch").disabled');
+  assert.equal(await evaluate('document.querySelectorAll(".moderation-card").length'),2,'organizer still sees album while viewing is paused');
+  await evaluate('document.querySelector(".moderation-switch").click()');await waitFor('document.querySelector(".moderation-switch").getAttribute("aria-checked")==="true" && !document.querySelector(".moderation-switch").disabled');
+  await evaluate('document.querySelector(".moderation-visibility").click()');await waitFor('document.querySelector(".media-visibility").classList.contains("is-hidden")');
+  await evaluate('document.querySelectorAll(".moderation-toolbar select")[1].value="hidden";document.querySelectorAll(".moderation-toolbar select")[1].dispatchEvent(new Event("change",{bubbles:true}))');
+  await waitFor('document.querySelectorAll(".moderation-card").length===1');
+  await evaluate('document.querySelector(".moderation-visibility").click()');await waitFor('document.querySelectorAll(".moderation-card").length===0');
+  await evaluate('document.querySelectorAll(".moderation-toolbar select")[1].value="all";document.querySelectorAll(".moderation-toolbar select")[1].dispatchEvent(new Event("change",{bubbles:true}))');
+  await waitFor('document.querySelectorAll(".moderation-card").length===2');
+  async function confirmMediaDelete(accept) {
+    const dialog=new Promise(resolve=>dialogResolve=resolve);const click=evaluate('document.querySelector(".moderation-card .admin-delete").click()');
+    const info=await dialog;assert.ok(info.message.includes('definitivamente'));await send('Page.handleJavaScriptDialog',{accept});await click;
+  }
+  const callsBefore=await evaluate('window.__qaMediaCalls.length');await confirmMediaDelete(false);assert.equal(await evaluate('window.__qaMediaCalls.length'),callsBefore);
+  await confirmMediaDelete(true);await waitFor('document.querySelector(".moderation .error")?.textContent.includes("quedó oculto") && !document.querySelector(".moderation-card .admin-delete").disabled');
+  assert.equal(await evaluate('document.querySelectorAll(".moderation-card").length'),2);
+  assert.equal(await evaluate('document.querySelector(".media-visibility").classList.contains("is-hidden")'),true);
+  await evaluate('window.__qaFailMediaDelete=false');await confirmMediaDelete(true);await waitFor('document.querySelectorAll(".moderation-card").length===1');
+  assert.equal(await evaluate('document.querySelector(".moderation-stats strong").textContent'),'1');
+  assert.equal(await evaluate('document.querySelectorAll("tbody tr").length'),1,'deleting a file keeps guest registration');
+  assert.equal(await evaluate('document.querySelector(".moderation video").controls'),true);
+  await evaluate('document.querySelector(".moderation").scrollIntoView({behavior:"instant"})');
   const shot=await send('Page.captureScreenshot',{format:'png'});await writeFile('.sites-runtime/admin/admin-after-delete.png',Buffer.from(shot.data,'base64'));
   assert.deepEqual(exceptions,[]);
-  console.log('Admin QA passed: responsive table, cancel, failed request, retry, removal and updated totals. All rows and DELETE requests were mocked locally.');
+  console.log('Admin QA passed: guest deletion, responsive moderation, global viewing switch, hide/restore, filters, canceled deletion, failed delete hidden state, retry and storage totals. All data and mutations were mocked locally.');
 } finally {socket?.close();chrome.kill();}

@@ -4,7 +4,7 @@
   const config = window.INVITATION_CONFIG || {};
   const apiBase = (config.apiBase || location.origin).replace(/\/$/,"");
   const storageKey = "graduacion-guest-pass";
-  let pass = "", me = null, editing = false, busy = false, media = [], cursor = null, paged = false, filter = "all";
+  let pass = "", me = null, editing = false, busy = false, media = [], cursor = null, filter = "all";
   let pdfUrl="",pdfFor="",pdfVersion=0,pdfPending=false,pdfModulePromise;
   try { pass = localStorage.getItem(storageKey) || ""; } catch {}
   const restored = new URLSearchParams(location.hash.slice(1)).get("acceso");
@@ -69,16 +69,19 @@
     const canEnter=me?.guest?.attendance==="yes" && me.albumOpen;
     $("album-content").hidden=!canEnter; $("album-locked").hidden=canEnter;
     $("album-preview").hidden=canEnter; $("album-upload-shortcut").hidden=!canEnter;
+    const canView=canEnter && me?.albumViewingEnabled!==false;
+    $("album-gallery").hidden=!canView;$("album-viewing-paused").hidden=!canEnter || canView;
+    if(!canView) {media=[];cursor=null;renderMedia();message("album-error","");if($("viewer").open && viewerKind==="album") $("viewer").close();}
     $("album-register-link").hidden=me?.guest?.attendance==="yes";
     $("album-locked-message").textContent=me?.guest?.attendance==="yes" ? "Tu asistencia está confirmada. Estamos preparando el álbum; actualiza la página en un momento." : "Confirma tu asistencia para compartir y ver los recuerdos de todos. Si ya confirmaste, entra con tu enlace privado.";
     const attending=me?.guest?.attendance==="yes";
     $("mobile-action-link").href=canEnter ? "#album" : "#registro";
-    $("mobile-action-link").textContent=canEnter ? "Ver fotos y videos ↗" : attending && !editing ? "Ver mi confirmación ↗" : "Confirmar asistencia ↗";
+    $("mobile-action-link").textContent=canEnter ? canView ? "Ver fotos y videos ↗" : "Compartir recuerdos ↗" : attending && !editing ? "Ver mi confirmación ↗" : "Confirmar asistencia ↗";
     $("mobile-action-note").textContent=attending ? "¡Ya estás en la lista!" : "28 OCT · 10:00 a. m.";
     syncPersonalInvitation();
   }
   async function refreshMe() {
-    try { const wasOpen=me?.guest?.attendance==="yes" && me.albumOpen; me=await api("/api/me"); renderRegistration(); if(!wasOpen && me.guest?.attendance==="yes" && me.albumOpen) await loadMedia(); }
+    try { const wasOpen=me?.guest?.attendance==="yes" && me.albumOpen && me.albumViewingEnabled!==false; me=await api("/api/me"); renderRegistration(); if(!wasOpen && me.guest?.attendance==="yes" && me.albumOpen && me.albumViewingEnabled!==false) await loadMedia(); }
     catch { $("register-loading").hidden=true; $("register-connection-error").hidden=false; }
   }
   $("retry-me").addEventListener("click",()=>void refreshMe());
@@ -176,12 +179,15 @@
     $("more-media").hidden=!cursor;
   }
   async function loadMedia(next) {
-    if(me?.guest?.attendance!=="yes" || !me.albumOpen) return;
+    if(me?.guest?.attendance!=="yes" || !me.albumOpen || me.albumViewingEnabled===false) return;
     $("refresh-album").disabled=true;
     try {
       const result=await api("/api/photos"+(next ? "?cursor="+encodeURIComponent(next) : ""));
-      media=Array.from(new Map([...media,...result.photos].map(item=>[item.id,item])).values()).sort((a,b)=>b.createdAt.localeCompare(a.createdAt)||b.id.localeCompare(a.id));
-      if(next || !paged) cursor=result.nextCursor; if(next) paged=true;
+      // Refresh the authoritative collection so moderated items disappear too.
+      media=Array.from(new Map([...(next ? media : []),...result.photos].map(item=>[item.id,item])).values()).sort((a,b)=>b.createdAt.localeCompare(a.createdAt)||b.id.localeCompare(a.id));
+      cursor=result.nextCursor;
+      message("album-error","");
+      if(!next && $("viewer").open && viewerKind==="album" && !media.some(item=>item.id===viewerItems[viewerIndex]?.id)) $("viewer").close();
       renderMedia();
     } catch(error) {message("album-error",error.message);}
     finally {$("refresh-album").disabled=false;}

@@ -2,6 +2,7 @@
 import {useEffect,useState} from "react";
 import {ArrowLeft,Download,RefreshCw,Trash2} from "lucide-react";
 import DriveSettings from "./drive-settings";
+import MediaModeration from "./media-moderation";
 type Guest={id:string;fullName:string;email:string;cui:string;attendance:"yes"|"no";createdAt:string};
 export default function Admin() {
   const [guests,setGuests]=useState<Guest[]>([]);
@@ -57,6 +58,7 @@ export default function Admin() {
       {loading && <p role="status">Consultando listado…</p>}
       {!loading && !filtered.length && <p>{search ? "No hay coincidencias." : "Aún no hay invitados registrados."}</p>}
     </>}
+    <MediaModeration/>
     <DriveSettings/>
   </main>;
 }

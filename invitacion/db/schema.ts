@@ -17,6 +17,7 @@ export const photos = sqliteTable("photos", {
   objectKey: text("object_key").notNull().unique(),
   contentType: text("content_type").notNull(),
   bytes: integer("bytes").notNull(),
+  hiddenAt: text("hidden_at"),
   createdAt: text("created_at").notNull(),
 }, table => [index("photos_created_idx").on(table.createdAt, table.id), index("photos_user_idx").on(table.userId)]);
 export const settings = sqliteTable("settings", {

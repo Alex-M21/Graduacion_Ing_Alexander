@@ -29,6 +29,13 @@
       "when": 1792709641649,
       "tag": "0003_great_polaris",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1792711392308,
+      "tag": "0004_jazzy_loki",
+      "breakpoints": true
     }
   ]
 }
