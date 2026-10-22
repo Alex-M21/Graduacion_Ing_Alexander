@@ -36,4 +36,5 @@ await copyFile(new URL("../public/share-card.png",import.meta.url),path.join(out
 await cp(new URL("../public/venue/",import.meta.url),path.join(output,"venue"),{recursive:true});
 await cp(new URL("../public/web/fonts/",import.meta.url),path.join(output,"fonts"),{recursive:true});
 await cp(new URL("../public/audio/",import.meta.url),path.join(output,"audio"),{recursive:true});
+await cp(new URL("../public/code-icons/",import.meta.url),path.join(output,"code-icons"),{recursive:true});
 console.log("GitHub Pages assets prepared: "+output);

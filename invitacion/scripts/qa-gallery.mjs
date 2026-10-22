@@ -23,6 +23,18 @@ try {
   await send('Page.enable');await send('Runtime.enable');await send('Emulation.setFocusEmulationEnabled',{enabled:true});
   await send('Emulation.setDeviceMetricsOverride',{width:1440,height:1000,deviceScaleFactor:1,mobile:false});
   await navigate('document.querySelector("#rsvp-form")?.hidden === false');
+  const calendar=new URL(await evaluate('document.querySelector("#google-calendar-link").href'));
+  assert.equal(calendar.origin,'https://calendar.google.com');
+  assert.equal(calendar.searchParams.get('dates'),'20261028T160000Z/20261028T160000Z');
+  assert.equal(calendar.searchParams.get('ctz'),'America/Guatemala');
+  assert.equal(calendar.searchParams.get('details').includes('#acceso='),false);
+  assert.equal(await evaluate('document.querySelector(".live-card a").href'),'https://www.facebook.com/share/1EuL13HnG7/');
+  await evaluate('document.querySelector("#code-surprise-button").click()');
+  assert.equal(await evaluate('document.querySelector("#code-surprise").hidden'),false);
+  assert.equal(await evaluate('document.querySelector("#code-surprise-button").getAttribute("aria-expanded")'),'true');
+  await evaluate('document.querySelector("#code-surprise-button").click()');
+  assert.equal(await evaluate('document.querySelector("#code-surprise").hidden'),true);
+  await waitFor('Array.from(document.querySelectorAll(".language-mark img")).every(i=>i.complete&&i.naturalWidth>0)');
   await waitFor('document.querySelector(".hero-photo img")?.complete && document.querySelector(".hero-photo img").naturalWidth>0');
   await shot('desktop-invitation');
   await evaluate('document.querySelector(".venue-heading").scrollIntoView({behavior:"instant",block:"start"})');
