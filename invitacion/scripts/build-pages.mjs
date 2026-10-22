@@ -1,4 +1,4 @@
-import {mkdir,readFile,writeFile,copyFile} from "node:fs/promises";
+import {mkdir,readFile,writeFile,copyFile,cp} from "node:fs/promises";
 import path from "node:path";
 import {createHash} from "node:crypto";
 const output=path.resolve(process.argv[2] || "../docs");
@@ -33,4 +33,5 @@ await writeFile(path.join(output,".nojekyll"),"");
 for(const name of ["styles.css","app.js","config.js"]) await copyFile(new URL("../public/web/"+name,import.meta.url),path.join(output,name));
 await copyFile(new URL("../public/favicon.svg",import.meta.url),path.join(output,"favicon.svg"));
 await copyFile(new URL("../public/share-card.png",import.meta.url),path.join(output,"share-card.png"));
+await cp(new URL("../public/venue/",import.meta.url),path.join(output,"venue"),{recursive:true});
 console.log("GitHub Pages assets prepared: "+output);

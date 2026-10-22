@@ -36,6 +36,7 @@
     }
     const canEnter=me?.guest?.attendance==="yes" && me.albumOpen;
     $("album-content").hidden=!canEnter; $("album-locked").hidden=canEnter;
+    $("album-preview").hidden=canEnter; $("album-upload-shortcut").hidden=!canEnter;
     $("album-register-link").hidden=me?.guest?.attendance==="yes";
     $("album-locked-message").textContent=me?.guest?.attendance==="yes" ? "¡Ya confirmaste! Guarda tu acceso privado y vuelve el 28 de octubre. Aquí podrás subir fotos y videos y ver los de los demás." : "Regístrate arriba. El 28 de octubre podrás entrar con tu acceso privado para subir y ver fotos y videos.";
     const attending=me?.guest?.attendance==="yes";
@@ -89,19 +90,51 @@
     const url=URL.createObjectURL(new Blob([text],{type:"text/calendar;charset=utf-8"})); const a=document.createElement("a");a.href=url;a.download="graduacion-alexander.ics";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
   });
   $("admin-link").href=apiBase+"/admin";
+  const venueButtons=Array.from(document.querySelectorAll("[data-venue]"));
+  const venuePhotos=venueButtons.map(button=>({kind:"photo",url:new URL(button.dataset.src,location.href).href,caption:button.dataset.caption,alt:button.querySelector("img").alt}));
+  venueButtons.forEach((button,index)=>button.addEventListener("click",()=>openViewer("venue",venuePhotos,index,button)));
+  const venueGallery=$("venue-gallery");
+  function venueIndex() {
+    const left=venueGallery.getBoundingClientRect().left;
+    return venueButtons.reduce((closest,button,index)=>Math.abs(button.getBoundingClientRect().left-left)<Math.abs(venueButtons[closest].getBoundingClientRect().left-left) ? index : closest,0);
+  }
+  function updateVenuePosition() {
+    const index=venueIndex();$("venue-position").textContent=(index+1)+" / "+venueButtons.length;
+    $("venue-prev").disabled=index===0;$("venue-next").disabled=index===venueButtons.length-1;
+  }
+  function scrollVenue(direction) {
+    const index=Math.max(0,Math.min(venueButtons.length-1,venueIndex()+direction));
+    venueGallery.scrollTo({left:venueGallery.scrollLeft+venueButtons[index].getBoundingClientRect().left-venueGallery.getBoundingClientRect().left,behavior:matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth"});
+  }
+  $("venue-prev").addEventListener("click",()=>scrollVenue(-1));$("venue-next").addEventListener("click",()=>scrollVenue(1));
+  let venueFrame=0;
+  venueGallery.addEventListener("scroll",()=>{cancelAnimationFrame(venueFrame);venueFrame=requestAnimationFrame(updateVenuePosition);},{passive:true});
+  updateVenuePosition();
   function renderMedia() {
     const grid=$("media-grid");grid.replaceChildren();
     const visible=media.filter(item=>filter==="all" || item.kind===filter);
     for(const [index,item] of visible.entries()) {
-      const button=document.createElement("button");button.className="media-item";button.setAttribute("aria-label",(item.kind==="video" ? "Reproducir video " : "Ver foto ")+(index+1));
+      const button=document.createElement("button");button.type="button";button.className="media-item";button.setAttribute("aria-label",(item.kind==="video" ? "Reproducir video " : "Ver foto ")+(index+1));
+      button.style.setProperty("--ratio",item.kind==="video" ? "1.2" : [".8","1.15",".75","1"][index%4]);
       if(item.kind==="video") {
         const tile=document.createElement("span");tile.className="video-tile";
         const play=document.createElement("span");play.textContent="▷";const label=document.createElement("small");label.textContent="VIDEO";tile.append(play,label);button.append(tile);
-      } else {const image=document.createElement("img");image.src=new URL(item.url,apiBase).href;image.alt="Recuerdo de la graduación";image.loading="lazy";button.append(image);}
-      button.addEventListener("click",()=>void openMedia(item));grid.append(button);
+      } else {
+        const image=document.createElement("img");image.alt="Foto "+(index+1)+" de la graduación";image.loading="lazy";image.decoding="async";
+        image.addEventListener("load",()=>button.style.setProperty("--ratio",String(image.naturalWidth/image.naturalHeight)),{once:true});
+        image.src=new URL(item.url,apiBase).href;button.append(image);
+      }
+      const caption=document.createElement("span");caption.className="media-caption";caption.setAttribute("aria-hidden","true");
+      const title=document.createElement("span");title.textContent=(item.kind==="video" ? "VIDEO " : "FOTO ")+String(index+1).padStart(2,"0");
+      const date=document.createElement("small");date.textContent=new Date(item.createdAt).toLocaleDateString("es-GT",{timeZone:"America/Guatemala",day:"numeric",month:"short"});title.append(date);
+      const arrow=document.createElement("span");arrow.textContent=item.kind==="video" ? "▷" : "↗";caption.append(title,arrow);button.append(caption);
+      button.addEventListener("click",()=>openViewer("album",visible,index,button));grid.append(button);
     }
     $("empty-album").hidden=visible.length>0;
-    $("empty-album").querySelector("h3").textContent=media.length ? "No hay recuerdos de este tipo en esta página." : "El primer recuerdo puede ser tuyo.";
+    $("empty-album").querySelector("h3").textContent=media.length ? "Todavía no hay recuerdos de este tipo aquí." : "Esta historia la escribimos entre todos.";
+    $("empty-album").querySelector("p").textContent=media.length ? "Prueba con otro filtro o carga más recuerdos." : "Comparte la primera foto o el primer video de nuestro gran día.";
+    const count=visible.length ? visible.length+(visible.length===1 ? " recuerdo cargado" : " recuerdos cargados") : "Aún no hay recuerdos";
+    if($("media-count").textContent!==count) $("media-count").textContent=count;
     $("more-media").hidden=!cursor;
   }
   async function loadMedia(next) {
@@ -122,19 +155,48 @@
   }));
   $("refresh-album").addEventListener("click",()=>{message("album-error","");void loadMedia();});
   $("more-media").addEventListener("click",()=>void loadMedia(cursor));
-  async function openMedia(item) {
-    try {
-      const result=await api("/api/photos/"+item.id+"/access");const box=$("viewer-content");box.replaceChildren();
-      const element=document.createElement(item.kind==="video" ? "video" : "img");element.src=new URL(result.url,apiBase).href;
-      if(item.kind==="video") {element.controls=true;element.playsInline=true;element.preload="metadata";element.setAttribute("controlsList","nodownload");element.setAttribute("aria-label","Video de la graduación");}
-      else element.alt="Recuerdo de la graduación, ampliado";
-      element.addEventListener("error",()=>{const error=document.createElement("p");error.className="error";error.textContent=item.kind==="video" ? "No se pudo reproducir este video. Intenta en otro navegador o solicita una versión MP4 con H.264." : "No pudimos abrir la foto. Actualiza el álbum e intenta de nuevo.";box.append(error);},{once:true});
-      box.append(element);$("viewer").showModal();
-    } catch(error) {message("album-error",error.message);}
+  let viewerItems=[],viewerIndex=0,viewerKind="venue",viewerRequest=0,viewerOpener=null;
+  function openViewer(kind,items,index,opener) {
+    viewerKind=kind;viewerItems=items.slice();viewerIndex=index;
+    if(!$("viewer").open) {viewerOpener=opener || document.activeElement;$("viewer").showModal();document.documentElement.classList.add("viewer-open");}
+    void renderViewer();
   }
+  async function renderViewer() {
+    const request=++viewerRequest,item=viewerItems[viewerIndex],box=$("viewer-content");
+    box.querySelector("video")?.pause();box.replaceChildren();box.setAttribute("aria-busy","true");
+    const loading=document.createElement("p");loading.className="viewer-loading";loading.setAttribute("role","status");loading.textContent=item.kind==="video" ? "Preparando video…" : "Abriendo foto…";box.append(loading);
+    $("viewer-category").textContent=viewerKind==="venue" ? "EL LUGAR DE NUESTRA CELEBRACIÓN" : "GRADUACIÓN · ALEXANDER MEJÍA";
+    $("viewer-caption").textContent=item.caption || (item.kind==="video" ? "Un pedacito de nuestro gran día." : "Un recuerdo para siempre.");
+    $("viewer-position").textContent=(viewerIndex+1)+" de "+viewerItems.length;
+    $("viewer-prev").disabled=viewerIndex===0;$("viewer-next").disabled=viewerIndex===viewerItems.length-1;
+    const current=()=>request===viewerRequest && $("viewer").open;
+    function fail(text) {
+      if(!current()) return;box.setAttribute("aria-busy","false");
+      const error=document.createElement("div");error.className="viewer-error";error.setAttribute("role","alert");
+      const message=document.createElement("p");message.textContent=text;
+      const retry=document.createElement("button");retry.type="button";retry.className="button light";retry.textContent="Intentar de nuevo ↻";retry.addEventListener("click",()=>void renderViewer());error.append(message,retry);box.replaceChildren(error);
+    }
+    try {
+      const url=viewerKind==="venue" ? item.url : new URL((await api("/api/photos/"+item.id+"/access")).url,apiBase).href;
+      if(!current()) return;
+      const element=document.createElement(item.kind==="video" ? "video" : "img");
+      if(item.kind==="video") {element.controls=true;element.playsInline=true;element.preload="metadata";element.setAttribute("controlsList","nodownload");element.setAttribute("aria-label","Video de la graduación");}
+      else {element.alt=item.alt || "Recuerdo de la graduación, ampliado";element.draggable=false;}
+      const ready=()=>{if(current()){loading.remove();box.setAttribute("aria-busy","false");}};
+      element.addEventListener(item.kind==="video" ? "loadedmetadata" : "load",ready,{once:true});
+      element.addEventListener("error",()=>fail(item.kind==="video" ? "No se pudo reproducir este video. Intenta con otro navegador o una versión MP4 con H.264." : "No pudimos abrir la foto. Revisa tu conexión e intenta de nuevo."),{once:true});
+      box.replaceChildren(element,loading);element.src=url;
+    } catch(error) {fail(error.message || "No pudimos abrir este recuerdo.");}
+  }
+  function stepViewer(direction) {const next=viewerIndex+direction;if(next<0 || next>=viewerItems.length) return;viewerIndex=next;void renderViewer();}
+  $("viewer-prev").addEventListener("click",()=>stepViewer(-1));$("viewer-next").addEventListener("click",()=>stepViewer(1));
   $("close-viewer").addEventListener("click",()=>$("viewer").close());
-  $("viewer").addEventListener("close",()=>$("viewer-content").replaceChildren());
-  $("viewer").addEventListener("click",event=>{if(event.target===$("viewer")) $("viewer").close();});
+  $("viewer").addEventListener("close",()=>{if($("viewer").open) return;viewerRequest++;$("viewer-content").querySelector("video")?.pause();$("viewer-content").replaceChildren();document.documentElement.classList.remove("viewer-open");if(viewerOpener?.isConnected) viewerOpener.focus({preventScroll:true});});
+  $("viewer").addEventListener("click",event=>{if(event.target!==$("viewer")) return;const r=$("viewer").getBoundingClientRect();if(event.clientX<r.left || event.clientX>r.right || event.clientY<r.top || event.clientY>r.bottom) $("viewer").close();});
+  $("viewer").addEventListener("keydown",event=>{if(event.target.tagName==="VIDEO" || event.ctrlKey || event.metaKey || event.altKey) return;if(event.key==="ArrowLeft" || event.key==="ArrowRight") {event.preventDefault();stepViewer(event.key==="ArrowLeft" ? -1 : 1);}});
+  let touchStart=null;
+  $("viewer-content").addEventListener("touchstart",event=>{touchStart=event.touches.length===1 && event.target.tagName!=="VIDEO" ? {x:event.touches[0].clientX,y:event.touches[0].clientY} : null;},{passive:true});
+  $("viewer-content").addEventListener("touchend",event=>{if(!touchStart || event.touches.length) {touchStart=null;return;}const touch=event.changedTouches[0],dx=touch.clientX-touchStart.x,dy=touch.clientY-touchStart.y;if(Math.abs(dx)>70 && Math.abs(dy)<70) stepViewer(dx<0 ? 1 : -1);touchStart=null;},{passive:true});
   async function preparePhoto(file) {
     if(file.size>20*1024*1024) throw new Error(file.name+": la foto original debe pesar menos de 20 MB.");
     const image=await createImageBitmap(file).catch(()=>{throw new Error(file.name+": selecciona JPG, PNG o WebP. Convierte las fotos HEIC a JPG.");});
@@ -231,7 +293,7 @@
     const reveal=new IntersectionObserver(entries=>{
       for(const entry of entries) if(entry.isIntersecting) {entry.target.classList.add("is-visible");reveal.unobserve(entry.target);}
     },{threshold:.12});
-    document.querySelectorAll(".how-it-works li,.event-grid>h2,.album-heading,.closing h2").forEach(element=>{element.classList.add("reveal-ready");reveal.observe(element);});
+    document.querySelectorAll(".how-it-works li,.event-story,.venue-heading,.album-heading,.closing h2").forEach(element=>{element.classList.add("reveal-ready");reveal.observe(element);});
   }
   // Keep the fixed action away from the phone keyboard and active form fields.
   document.addEventListener("focusin",event=>{if(event.target.matches("input:not([type=checkbox]),textarea")) document.documentElement.classList.add("input-focused");});

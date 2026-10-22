@@ -33,6 +33,7 @@ La conexión usa una implementación de Google Apps Script de tu propiedad, prot
 | `public/web/styles.css` | Diseño y adaptación a móvil |
 | `public/web/app.js` | Formulario, galería, pases y subidas |
 | `public/web/config.js` | URL pública del servidor, sin claves |
+| `public/venue/` | Las cuatro fotos públicas del campus y del auditorio |
 | `scripts/build-pages.mjs` | Exportar archivos estáticos a GitHub Pages |
 | `app/api/[...path]/route.ts` | API y CORS limitado a la cuenta de GitHub autorizada |
 | `lib/media.ts` | Validación y transferencia limitada por tamaño |
@@ -81,8 +82,11 @@ node --experimental-strip-types --test tests/security.test.mjs
 node --test tests/api.test.mjs
 node --test tests/drive.test.mjs
 node scripts/qa-browser.mjs
+node scripts/qa-gallery.mjs
 ```
 
 La prueba de navegador requiere el servidor local, una clave de pruebas y Chrome instalado. Escribe registros sintéticos solo en la base local y prueba la reproducción con un video generado en el navegador. `CHROME_PATH` permite indicar el ejecutable. La API se prueba en un Worker con D1/R2 efímeros. La integración de Drive se prueba con respuestas simuladas: la autorización real y el guardado en tu cuenta deben verificarse al conectarla.
+
+`qa-gallery.mjs` comprueba las fotos del lugar, el visor con teclado y deslizamiento, la cuadrícula en varios tamaños y los filtros de fotos y videos. Su colección del día del evento se simula solo en el navegador: no crea invitados ni sube archivos al servidor. Guarda capturas en `.sites-runtime/gallery/`.
 
 Conservar `CUI_ENCRYPTION_KEY` y `ADMIN_EMAIL` en el entorno del servidor. No registrar ni publicar credenciales, pases ni CSV con invitados. Mantener el `project_id` de `.openai/hosting.json`; seguir el flujo de Sites para publicar el servidor. El workflow de la raíz publica únicamente `docs/` en GitHub Pages.

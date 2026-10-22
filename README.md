@@ -2,6 +2,8 @@
 
 Invitación web en **gris, naranja y blanco**, con registro directo y álbum compartido de fotos y videos.
 
+Portada con fotos del campus, galería del lugar con las cuatro imágenes proporcionadas y álbum del evento en mosaico. El visor admite navegación con botones, teclado y deslizamiento en celulares, además de video con controles. Las fotos del lugar son públicas; los recuerdos que suban los invitados mantienen su acceso privado.
+
 **[Abrir invitación en GitHub Pages](https://alex-m21.github.io/Graduacion_Ing_Alexander/)** — publicación verificada, con formulario accesible sin iniciar sesión.
 
 **28 de octubre de 2026, 10:00 a. m.** · Auditorio Francisco Vela, Campus Central, zona 12, cerca del edificio T3.
