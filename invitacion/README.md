@@ -1,6 +1,6 @@
 # Invitación web · Alexander Mejía
 
-Rediseño completo en gris, naranja y blanco para la graduación del **28 de octubre de 2026, 10:00 a. m.**, en el **Auditorio Francisco Vela, Campus Central, zona 12, cerca del edificio T3**.
+Diseño en azul marino, dorado y marfil, inspirado en la invitación proporcionada por la Facultad de Ingeniería, para la graduación del **28 de octubre de 2026, 10:00 a. m.**, en el **Auditorio Francisco Vela, Campus Central, zona 12, cerca del edificio T3**.
 
 ## Experiencia
 
