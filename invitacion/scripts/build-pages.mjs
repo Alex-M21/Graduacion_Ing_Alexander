@@ -13,7 +13,7 @@ const html=`<!doctype html>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
 <meta name="referrer" content="no-referrer">
-<meta name="theme-color" content="#122b54">
+<meta name="theme-color" content="#ffffff">
 <title>Graduación · Ing. Alexander Mejía</title>
 <meta name="description" content="Cada persona invitada forma parte de quien soy hoy y de los logros que he alcanzado. Acompáñame a celebrar mi graduación como Ingeniero en Ciencias y Sistemas.">
 <meta property="og:type" content="website">
@@ -35,4 +35,5 @@ await copyFile(new URL("../public/favicon.svg",import.meta.url),path.join(output
 await copyFile(new URL("../public/share-card.png",import.meta.url),path.join(output,"share-card.png"));
 await cp(new URL("../public/venue/",import.meta.url),path.join(output,"venue"),{recursive:true});
 await cp(new URL("../public/web/fonts/",import.meta.url),path.join(output,"fonts"),{recursive:true});
+await cp(new URL("../public/audio/",import.meta.url),path.join(output,"audio"),{recursive:true});
 console.log("GitHub Pages assets prepared: "+output);

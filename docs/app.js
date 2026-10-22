@@ -38,7 +38,7 @@
     $("album-content").hidden=!canEnter; $("album-locked").hidden=canEnter;
     $("album-preview").hidden=canEnter; $("album-upload-shortcut").hidden=!canEnter;
     $("album-register-link").hidden=me?.guest?.attendance==="yes";
-    $("album-locked-message").textContent=me?.guest?.attendance==="yes" ? "Tu asistencia está confirmada. Estamos preparando el álbum; actualiza la página en un momento." : "El álbum ya está abierto. Confirma tu asistencia o abre tu acceso privado para subir fotos y videos y ver los recuerdos de todos.";
+    $("album-locked-message").textContent=me?.guest?.attendance==="yes" ? "Tu asistencia está confirmada. Estamos preparando el álbum; actualiza la página en un momento." : "Confirma tu asistencia para compartir y ver los recuerdos de todos. Si ya confirmaste, entra con tu enlace privado.";
     const attending=me?.guest?.attendance==="yes";
     $("mobile-action-link").href=canEnter ? "#album" : "#registro";
     $("mobile-action-link").textContent=canEnter ? "Ver fotos y videos ↗" : attending && !editing ? "Ver mi confirmación ↗" : "Confirmar asistencia ↗";
@@ -84,7 +84,7 @@
     catch(error) {if(error.name!=="AbortError") toast("Comparte este enlace: "+url);}
   });
   // Share the public invitation only; a guest's private access stays on this device.
-  $("share-whatsapp").href="https://wa.me/?text="+encodeURIComponent("Formas parte de quien soy hoy y de los logros que he alcanzado. Tú también eres parte de mi historia y de este sueño cumplido. Después de tantos desvelos, proyectos y parciales, hoy cumplo mi sueño de ser Ingeniero en Ciencias y Sistemas, y quiero celebrarlo contigo.\n\n🎓 Graduación de Alexander Mejía\n📅 Miércoles 28 de octubre de 2026 · 10:00 a. m.\n📍 Auditorio Francisco Vela, Campus Central, zona 12.\n¡Te esperamos! Confirma tu asistencia aquí: "+publicUrl());
+  $("share-whatsapp").href="https://wa.me/?text="+encodeURIComponent("Una meta más. Un sueño cumplido. Este acto está dedicado a quienes formaron parte de mi camino para ser Ingeniero en Ciencias y Sistemas. Gracias por ser parte de quien soy hoy y por acompañarme a celebrar.\n\n🎓 Graduación de Alexander Mejía\n📅 Miércoles 28 de octubre de 2026 · 10:00 a. m.\n📍 Auditorio Francisco Vela, Campus Central, zona 12.\n¡Te esperamos! Confirma tu asistencia aquí: "+publicUrl());
   $("calendar-button").addEventListener("click",()=>{
     const text=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Alexander Mejia//Graduacion//ES","BEGIN:VEVENT","UID:alexander-graduacion-20261028","DTSTAMP:"+new Date().toISOString().replace(/[-:]/g,"").replace(".000",""),"DTSTART:20261028T160000Z","SUMMARY:Graduación Ing. Alexander Mejía","LOCATION:Auditorio Francisco Vela - Campus Central zona 12 - cerca del edificio T3","DESCRIPTION:Lleva identificación de estudiante o DPI y confirma tu asistencia en la invitación.","END:VEVENT","END:VCALENDAR"].join("\r\n");
     const url=URL.createObjectURL(new Blob([text],{type:"text/calendar;charset=utf-8"})); const a=document.createElement("a");a.href=url;a.download="graduacion-alexander.ics";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
@@ -148,11 +148,29 @@
     } catch(error) {message("album-error",error.message);}
     finally {$("refresh-album").disabled=false;}
   }
-  document.querySelectorAll("[data-filter]").forEach(button=>button.addEventListener("click",()=>{
-    filter=button.dataset.filter;
-    document.querySelectorAll("[data-filter]").forEach(item=>{const active=item===button;item.classList.toggle("active",active);item.setAttribute("aria-pressed",String(active));});
+  const albumFilters={"#album":"all","#fotos":"photo","#videos":"video"};
+  function selectFilter(value) {
+    filter=value;
+    document.querySelectorAll("[data-filter]").forEach(item=>{const active=item.dataset.filter===filter;item.classList.toggle("active",active);item.setAttribute("aria-pressed",String(active));});
     renderMedia();
+  }
+  function openAlbumLink() {
+    const value=albumFilters[location.hash];
+    if(!value) return;
+    selectFilter(value);
+    if(location.hash!=="#album") requestAnimationFrame(()=>$("album").scrollIntoView({block:"start",behavior:"instant"}));
+  }
+  document.querySelectorAll("[data-filter]").forEach(button=>button.addEventListener("click",()=>{
+    selectFilter(button.dataset.filter);
+    const hash=Object.keys(albumFilters).find(key=>albumFilters[key]===filter);
+    history.replaceState(null,"",location.pathname+location.search+hash);
   }));
+  window.addEventListener("hashchange",openAlbumLink);
+  // Repeated taps on the same shortcut also return to the selected collection.
+  document.querySelectorAll('.album-quick-links a').forEach(link=>link.addEventListener("click",event=>{
+    if(location.hash===link.hash) {event.preventDefault();openAlbumLink();}
+  }));
+  openAlbumLink();
   $("refresh-album").addEventListener("click",()=>{message("album-error","");void loadMedia();});
   $("more-media").addEventListener("click",()=>void loadMedia(cursor));
   let viewerItems=[],viewerIndex=0,viewerKind="venue",viewerRequest=0,viewerOpener=null;
@@ -237,15 +255,13 @@
   // A fixed number of CSS particles keeps the celebration light on mobile.
   const reducedMotion=matchMedia("(prefers-reduced-motion: reduce)");
   const smallScreen=matchMedia("(max-width: 760px)");
-  let effectsEnabled=true;
-  try {effectsEnabled=sessionStorage.getItem("graduacion-effects")!=="off";} catch {}
-  const celebrationEmojis=["🎓","🎓","🎊","🎉","✨"];
+  const celebrationEmojis=["🎓","🎓","🎓","⭐","🌟","✨","🎊","🎉"];
   const randomBetween=(min,max)=>min+Math.random()*(max-min);
   function makeRainParticle(initial=false) {
     const mobile=smallScreen.matches;
     const piece=document.createElement("span");piece.className="celebration-particle";
     piece.textContent=celebrationEmojis[Math.floor(Math.random()*celebrationEmojis.length)];
-    const duration=randomBetween(10,21),angle=randomBetween(-180,180),spin=randomBetween(-540,540);
+    const duration=randomBetween(9,18),angle=randomBetween(-180,180),spin=randomBetween(-540,540);
     const properties={
       "--left":randomBetween(0,100).toFixed(2)+"%",
       "--size":randomBetween(mobile ? 16 : 19,mobile ? 27 : 34).toFixed(1)+"px",
@@ -256,7 +272,7 @@
       "--start-angle":angle.toFixed(1)+"deg",
       "--mid-angle":(angle+spin*.45).toFixed(1)+"deg",
       "--end-angle":(angle+spin).toFixed(1)+"deg",
-      "--peak-opacity":randomBetween(.35,.7).toFixed(2)
+      "--peak-opacity":randomBetween(.3,.65).toFixed(2)
     };
     for(const [name,value] of Object.entries(properties)) piece.style.setProperty(name,value);
     return piece;
@@ -264,7 +280,7 @@
   function createRain() {
     const layer=$("celebration-rain");layer.replaceChildren();
     if(reducedMotion.matches) return;
-    const count=smallScreen.matches ? 16 : 28;
+    const count=smallScreen.matches ? 36 : 64;
     const particles=document.createDocumentFragment();
     for(let i=0;i<count;i++) particles.append(makeRainParticle(true));
     layer.append(particles);
@@ -276,24 +292,93 @@
     piece.replaceWith(makeRainParticle());
   });
   function updateEffects() {
-    const active=effectsEnabled && !reducedMotion.matches;
-    document.documentElement.classList.toggle("effects-paused",!active || document.hidden);
-    const button=$("motion-toggle");button.hidden=false;button.disabled=reducedMotion.matches;
-    button.setAttribute("aria-pressed",String(active));
-    button.textContent=reducedMotion.matches ? "Efectos reducidos" : active ? "Ⅱ Pausar efectos" : "▷ Activar efectos";
-    button.setAttribute("aria-label",reducedMotion.matches ? "Efectos desactivados según tu preferencia de movimiento reducido" : active ? "Pausar confeti y animaciones" : "Activar confeti y animaciones");
+    document.documentElement.classList.toggle("effects-paused",reducedMotion.matches || document.hidden);
   }
-  $("motion-toggle").addEventListener("click",()=>{
-    effectsEnabled=!effectsEnabled;
-    try {sessionStorage.setItem("graduacion-effects",effectsEnabled ? "on" : "off");} catch {}
-    updateEffects();
-  });
   reducedMotion.addEventListener("change",()=>{createRain();updateEffects();});
   smallScreen.addEventListener("change",createRain);
   document.addEventListener("visibilitychange",updateEffects);
   createRain();updateEffects();
+  // Music starts when the browser permits it, or on the first visitor gesture.
+  // Muting persists locally; opening a video pauses the song to avoid two tracks.
+  const music=$("background-music"),musicButton=$("music-toggle");
+  let musicWanted=true,musicStarting=false;
+  try {musicWanted=localStorage.getItem("graduacion-music")!=="off";} catch {}
+  music.volume=.28;
+  function updateMusicButton() {
+    const playing=!music.paused && !music.muted;
+    musicButton.setAttribute("aria-pressed",String(playing));
+    musicButton.setAttribute("aria-label",playing ? "Silenciar música" : "Activar música");
+    $("music-label").textContent=playing ? "Silenciar música" : "Activar música";
+  }
+  async function startMusic() {
+    if(!musicWanted || musicStarting || document.hidden || $("viewer").open || !music.paused) return;
+    musicStarting=true;
+    try {await music.play();if(!musicWanted || document.hidden || $("viewer").open) music.pause();}
+    catch {} // Autoplay restrictions leave the visible music button available.
+    finally {musicStarting=false;updateMusicButton();}
+  }
+  musicButton.addEventListener("click",()=>{
+    if(!music.paused || musicStarting) {musicWanted=false;music.pause();}
+    else {musicWanted=true;void startMusic();}
+    try {localStorage.setItem("graduacion-music",musicWanted ? "on" : "off");} catch {}
+    updateMusicButton();
+  });
+  const firstGesture=event=>{
+    if(event.target.closest?.("#music-toggle") || event.target.closest?.("input,textarea")) return;
+    void startMusic();
+  };
+  document.addEventListener("pointerdown",firstGesture,{passive:true});
+  document.addEventListener("keydown",firstGesture);
+  music.addEventListener("play",updateMusicButton);
+  music.addEventListener("pause",updateMusicButton);
+  $("viewer").addEventListener("play",()=>music.pause(),true);
+  $("viewer").addEventListener("close",()=>void startMusic());
+  document.addEventListener("visibilitychange",()=>{if(document.hidden) music.pause();else void startMusic();});
+  updateMusicButton();void startMusic();
+
+  // Brief, bounded bursts reward taps without covering controls or form fields.
+  document.addEventListener("click",event=>{
+    if(reducedMotion.matches || document.hidden || $("viewer").open || !event.target.closest?.(".button,.album-quick-links a") || document.querySelectorAll(".celebration-burst").length>=24) return;
+    const rect=event.target.closest(".button,.album-quick-links a").getBoundingClientRect();
+    const x=event.detail ? event.clientX : rect.left+rect.width/2,y=event.detail ? event.clientY : rect.top+rect.height/2;
+    const pieces=document.createDocumentFragment();
+    for(let i=0;i<12;i++) {
+      const piece=document.createElement("span");piece.className="celebration-burst";piece.setAttribute("aria-hidden","true");
+      piece.textContent=celebrationEmojis[Math.floor(Math.random()*celebrationEmojis.length)];
+      const values={"--burst-x":x+"px","--burst-y":y+"px","--burst-size":randomBetween(15,25)+"px","--burst-dx":randomBetween(-115,115)+"px","--burst-dy":randomBetween(-160,40)+"px","--burst-spin":randomBetween(-180,180)+"deg"};
+      for(const [name,value] of Object.entries(values)) piece.style.setProperty(name,value);
+      piece.addEventListener("animationend",()=>piece.remove(),{once:true});pieces.append(piece);
+    }
+    document.body.append(pieces);
+  });
+  const heroPhoto=document.querySelector(".hero-photo");
+  if(matchMedia("(hover: hover) and (pointer: fine)").matches) {
+    heroPhoto.addEventListener("pointermove",event=>{
+      if(reducedMotion.matches) return;
+      const r=heroPhoto.getBoundingClientRect();
+      heroPhoto.style.setProperty("--tilt-x",((.5-(event.clientY-r.top)/r.height)*5)+"deg");
+      heroPhoto.style.setProperty("--tilt-y",(((event.clientX-r.left)/r.width-.5)*5)+"deg");
+    });
+    heroPhoto.addEventListener("pointerleave",()=>{heroPhoto.style.removeProperty("--tilt-x");heroPhoto.style.removeProperty("--tilt-y");});
+  }
+  let progressFrame=0;
+  function readingProgress() {
+    progressFrame=0;const total=document.documentElement.scrollHeight-innerHeight;
+    document.documentElement.style.setProperty("--reading-progress",String(total>0 ? Math.max(0,Math.min(1,scrollY/total)) : 0));
+  }
+  window.addEventListener("scroll",()=>{if(!progressFrame) progressFrame=requestAnimationFrame(readingProgress);},{passive:true});
+  readingProgress();
+  if("IntersectionObserver" in window) {
+    const links=Array.from(document.querySelectorAll(".nav nav>a"));
+    const sections=new IntersectionObserver(entries=>{
+      for(const entry of entries) if(entry.isIntersecting) for(const link of links) {
+        if(link.hash==="#"+entry.target.id) link.setAttribute("aria-current","location");else link.removeAttribute("aria-current");
+      }
+    },{rootMargin:"-10% 0px -65% 0px"});
+    for(const id of ["evento","registro","album"]) sections.observe($(id));
+  }
   function celebrateConfirmation() {
-    if(!effectsEnabled || reducedMotion.matches || !$("confirmed-state").animate) return;
+    if(reducedMotion.matches || !$("confirmed-state").animate) return;
     $("confirmed-state").animate([{opacity:.4,transform:"translateY(8px)"},{opacity:1,transform:"translateY(0)"}],{duration:400,easing:"ease-out"});
   }
   function updateCountdown() {
@@ -312,7 +397,7 @@
     const reveal=new IntersectionObserver(entries=>{
       for(const entry of entries) if(entry.isIntersecting) {entry.target.classList.add("is-visible");reveal.unobserve(entry.target);}
     },{threshold:.12});
-    document.querySelectorAll(".how-it-works li,.event-story,.venue-heading,.album-heading,.closing h2").forEach(element=>{element.classList.add("reveal-ready");reveal.observe(element);});
+    document.querySelectorAll(".event-story,.venue-heading,.album-heading,.closing h2,.form-card,.entry-note").forEach(element=>{element.classList.add("reveal-ready");reveal.observe(element);});
   }
   // Keep the fixed action away from the phone keyboard and active form fields.
   document.addEventListener("focusin",event=>{if(event.target.matches("input:not([type=checkbox]),textarea")) document.documentElement.classList.add("input-focused");});

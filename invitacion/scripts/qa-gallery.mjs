@@ -18,7 +18,7 @@ try {
   const evaluate=async expression=>{const r=await send('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true,userGesture:true});if(r.exceptionDetails)throw new Error(r.exceptionDetails.text+' '+JSON.stringify(r.exceptionDetails.exception));return r.result.value;};
   const pause=ms=>new Promise(r=>setTimeout(r,ms));
   async function waitFor(expression){for(let i=0;i<180;i++){if(await evaluate(expression))return;await pause(100);}throw new Error('Timeout: '+expression);}
-  async function navigate(condition){await evaluate('window.__qaLeaving=true');await send('Page.navigate',{url:base});await waitFor('!window.__qaLeaving && ('+condition+')');}
+  async function navigate(condition,url=base){const target=new URL(url);target.searchParams.set('__qa_navigation',String(Date.now()));await evaluate('window.__qaLeaving=true');await send('Page.navigate',{url:target.href});await waitFor('!window.__qaLeaving && ('+condition+')');}
   async function shot(name){const result=await send('Page.captureScreenshot',{format:'png'});await writeFile('.sites-runtime/gallery/'+name+'.png',Buffer.from(result.data,'base64'));}
   await send('Page.enable');await send('Runtime.enable');await send('Emulation.setFocusEmulationEnabled',{enabled:true});
   await send('Emulation.setDeviceMetricsOverride',{width:1440,height:1000,deviceScaleFactor:1,mobile:false});
@@ -70,7 +70,16 @@ try {
       return fetchOriginal(input,options);
     };
   })();`});
-  await navigate('document.querySelectorAll(".media-item").length===9');
+  await navigate('document.querySelectorAll(".media-item").length===1',base+'#videos');
+  assert.equal(await evaluate('document.querySelector("[data-filter=video]").getAttribute("aria-pressed")'),'true','video deep link selects videos on load');
+  await evaluate('location.hash="#fotos"');await waitFor('document.querySelectorAll(".media-item").length===8');
+  assert.equal(await evaluate('document.querySelector("[data-filter=photo]").getAttribute("aria-pressed")'),'true');
+  await evaluate('document.querySelector("#refresh-album").click()');await waitFor('!document.querySelector("#refresh-album").disabled');
+  assert.equal(await evaluate('document.querySelectorAll(".media-item").length'),8,'refresh preserves photo filter');
+  await evaluate('location.hash="#album"');await waitFor('document.querySelectorAll(".media-item").length===9');
+  await navigate('document.querySelectorAll(".media-item").length===8',base+'#fotos');
+  await evaluate('document.querySelector("[data-filter=all]").click()');
+  assert.equal(await evaluate('location.hash'),'#album','filter buttons expose shareable collection links');
   assert.equal(await evaluate('document.querySelector("#album-preview").hidden'),true);
   for(const width of [320,390,430,768,1440]){
     await send('Emulation.setDeviceMetricsOverride',{width,height:1000,deviceScaleFactor:1,mobile:width<=760});
@@ -90,5 +99,5 @@ try {
   await evaluate('window.__qaDelayAccess=true;document.querySelector("[data-filter=photo]").click();document.querySelector(".media-item").click();document.querySelector("#close-viewer").click()');await pause(1000);
   assert.equal(await evaluate('!document.querySelector("#viewer").open && document.querySelector("#viewer-content").children.length===0'),true,'late response stays closed');
   assert.deepEqual(exceptions,[]);
-  console.log('Gallery QA passed: four real venue photos, keyboard and swipe navigation, focus return, phone image fit, masonry at five sizes, photo/video filters, WebM playback and safe close during loading. Event-day data was mocked; no hosted records or files were written.');
+  console.log('Gallery QA passed: venue photos, keyboard and swipe navigation, focus return, phone image fit, masonry at five sizes, initial photo/video deep links and hash changes, persistent filters, WebM playback and safe close during loading. Collection data was mocked; no hosted records or files were written.');
 } finally {socket?.close();chrome.kill();}
