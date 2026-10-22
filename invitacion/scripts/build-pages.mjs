@@ -15,11 +15,11 @@ const html=`<!doctype html>
 <meta name="referrer" content="no-referrer">
 <meta name="theme-color" content="#122b54">
 <title>Graduación · Ing. Alexander Mejía</title>
-<meta name="description" content="Después de tantos desvelos, proyectos y parciales, hoy cumplo mi sueño de ser Ingeniero en Ciencias y Sistemas. Tú también eres parte de este logro.">
+<meta name="description" content="Cada persona invitada forma parte de quien soy hoy y de los logros que he alcanzado. Acompáñame a celebrar mi graduación como Ingeniero en Ciencias y Sistemas.">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="es_GT">
 <meta property="og:title" content="🎓 Graduación · Ing. Alexander Mejía">
-<meta property="og:description" content="Tú también eres parte de este logro. Acompáñame a mi graduación como Ingeniero en Ciencias y Sistemas. Miércoles 28 de octubre · 10:00 a. m.">
+<meta property="og:description" content="Formas parte de quien soy hoy y de mis logros. Acompáñame a mi graduación como Ingeniero en Ciencias y Sistemas. Miércoles 28 de octubre · 10:00 a. m.">
 <meta property="og:url" content="https://alex-m21.github.io/Graduacion_Ing_Alexander/">
 <meta property="og:image" content="https://alex-m21.github.io/Graduacion_Ing_Alexander/share-card.png">
 <meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
