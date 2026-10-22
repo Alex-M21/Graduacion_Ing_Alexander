@@ -1,7 +1,7 @@
 export const event = {
   title: "Graduación Ing. Alexander Mejía",
   name: "Alexander Mejía",
-  degree: "Ingeniero",
+  degree: "Ingeniero en Ciencias y Sistemas",
   startsAt: "2026-10-28T10:00:00-06:00",
   albumOpensAt: "2026-10-22T00:00:00-06:00",
   timezone: "America/Guatemala",

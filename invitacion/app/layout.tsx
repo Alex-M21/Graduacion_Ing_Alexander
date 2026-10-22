@@ -3,12 +3,12 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Graduación · Ing. Alexander Mejía",
-  description: "Acompáñame a celebrar este logro. Confirma tu asistencia y comparte los recuerdos de la graduación.",
+  description: "Después de tantos desvelos, proyectos y parciales, hoy cumplo mi sueño de ser Ingeniero en Ciencias y Sistemas. Tú también eres parte de este logro.",
   openGraph: {
     type: "website",
     locale: "es_GT",
     title: "🎓 Graduación · Ing. Alexander Mejía",
-    description: "28 de octubre · 10:00 a. m. · Auditorio Francisco Vela. ¡Acompáñame! Confirma tu asistencia aquí.",
+    description: "Tú también eres parte de este logro. Acompáñame a mi graduación como Ingeniero en Ciencias y Sistemas. Miércoles 28 de octubre · 10:00 a. m.",
     images: [{ url: "https://alex-m21.github.io/Graduacion_Ing_Alexander/share-card.png", width: 1200, height: 630, alt: "Graduación del Ing. Alexander Mejía, 28 de octubre de 2026 a las 10:00 a. m." }],
   },
   twitter: { card: "summary_large_image" },

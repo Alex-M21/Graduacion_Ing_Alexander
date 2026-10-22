@@ -23,6 +23,7 @@ body{background:var(--ivory);color:var(--navy)}
 .hero h1 em{font-size:1.18em;line-height:1.1;display:inline-block;padding-right:.1em;color:#a77b32}
 .title-star{color:var(--gold)}
 .hero-message strong{color:var(--navy)}
+.hero-message>p+p{margin-top:14px}
 .graduate-name{color:var(--navy)}
 .orange{background:linear-gradient(115deg,#e2c78e,#c49a50);color:var(--navy-deep);border:1px solid #b48a40;box-shadow:0 3px 12px #b48a4012}
 .dark{background:var(--navy);color:var(--ivory)}
