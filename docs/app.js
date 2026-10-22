@@ -30,14 +30,18 @@
       $("confirmed-title").textContent=attending ? "¡Estás en la lista!" : "Gracias por avisarme.";
       $("confirmed-name").textContent=me.guest.fullName+(attending ? ", nos vemos para celebrar." : ", espero que pronto podamos celebrar juntos.");
       $("album-entry").hidden=!attending;
-      $("album-entry").textContent=me.albumOpen ? "Entrar al álbum del evento ↗" : "Álbum · disponible el 28 de octubre ↗";
+      $("album-entry").textContent=me.albumOpen ? "Ver fotos y videos del evento ↗" : "Ver cómo entrar al álbum el 28 de octubre ↗";
       $("save-access").hidden=!pass; document.querySelector(".access-help").hidden=!pass;
       $("decline-rsvp").hidden=!attending;
     }
     const canEnter=me?.guest?.attendance==="yes" && me.albumOpen;
     $("album-content").hidden=!canEnter; $("album-locked").hidden=canEnter;
     $("album-register-link").hidden=me?.guest?.attendance==="yes";
-    $("album-locked-message").textContent=me?.guest?.attendance==="yes" ? "Tu acceso está listo. Vuelve el 28 de octubre para compartir fotos y videos." : "Confirma tu asistencia y vuelve el 28 de octubre para compartir fotos y videos.";
+    $("album-locked-message").textContent=me?.guest?.attendance==="yes" ? "¡Ya confirmaste! Guarda tu acceso privado y vuelve el 28 de octubre. Aquí podrás subir fotos y videos y ver los de los demás." : "Regístrate arriba. El 28 de octubre podrás entrar con tu acceso privado para subir y ver fotos y videos.";
+    const attending=me?.guest?.attendance==="yes";
+    $("mobile-action-link").href=canEnter ? "#album" : "#registro";
+    $("mobile-action-link").textContent=canEnter ? "Ver fotos y videos ↗" : attending && !editing ? "Ver mi confirmación ↗" : "Confirmar asistencia ↗";
+    $("mobile-action-note").textContent=attending ? "¡Ya estás en la lista!" : "28 OCT · 10:00 a. m.";
   }
   async function refreshMe() {
     try { const wasOpen=me?.guest?.attendance==="yes" && me.albumOpen; me=await api("/api/me"); renderRegistration(); if(!wasOpen && me.guest?.attendance==="yes" && me.albumOpen) await loadMedia(); }
@@ -48,15 +52,16 @@
     event.preventDefault(); if(busy) return;
     const form=event.currentTarget; const fields=new FormData(form);
     const cui=String(fields.get("cui") || "").replace(/[\s-]/g,"");
-    if(!/^\d{13}$/.test(cui)) { message("form-error","El CUI debe tener 13 dígitos."); $("cui").focus(); return; }
+    if(!/^\d{13}$/.test(cui)) { message("form-error","Escribe los 13 números del CUI de tu DPI, sin letras."); $("cui").focus(); return; }
     busy=true; $("submit-rsvp").disabled=true; $("submit-rsvp").textContent="Guardando…"; message("form-error","");
     try {
       const result=await api("/api/rsvp",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({fullName:fields.get("fullName"),email:fields.get("email"),cui,attendance:"yes",consent:fields.get("consent")==="on"})});
       if(result.guestPass) savePass(result.guestPass);
       form.reset(); editing=false; await refreshMe();
-      message("registration-notice","Confirmación guardada. Copia tu acceso privado para volver desde otro dispositivo.");
+      message("registration-notice","Tu confirmación está guardada. Pulsa «Guardar mi acceso privado» para copiar tu enlace y conservarlo.");
+      if(me?.guest) { $("confirmed-title").focus({preventScroll:true}); $("confirmed-state").scrollIntoView({block:"nearest",behavior:matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth"}); celebrateConfirmation(); }
     } catch(error) { message("form-error",error.message); }
-    finally { busy=false; $("submit-rsvp").disabled=false; $("submit-rsvp").innerHTML='Confirmar mi asistencia <span>↗</span>'; }
+    finally { busy=false; $("submit-rsvp").disabled=false; $("submit-rsvp").innerHTML='Confirmar mi asistencia <span aria-hidden="true">↗</span>'; }
   });
   $("edit-rsvp").addEventListener("click",()=>{
     editing=true; renderRegistration(); $("fullName").value=me.guest.fullName; $("email").value=me.guest.email; $("cui").value=""; message("registration-notice",""); $("fullName").focus();
@@ -77,6 +82,8 @@
     try { if(navigator.share) await navigator.share({title:"Graduación Ing. Alexander Mejía",text:"Acompáñame a celebrar. Confirma tu asistencia aquí:",url}); else {await navigator.clipboard.writeText(url);toast("Enlace de la invitación copiado.");} }
     catch(error) {if(error.name!=="AbortError") toast("Comparte este enlace: "+url);}
   });
+  // Share the public invitation only; a guest's private access stays on this device.
+  $("share-whatsapp").href="https://wa.me/?text="+encodeURIComponent("🎓 Te invito a la graduación del Ing. Alexander Mejía.\n📅 28 de octubre de 2026 · 10:00 a. m.\n📍 Auditorio Francisco Vela, Campus Central, zona 12.\nConfirma tu asistencia aquí: "+publicUrl());
   $("calendar-button").addEventListener("click",()=>{
     const text=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Alexander Mejia//Graduacion//ES","BEGIN:VEVENT","UID:alexander-graduacion-20261028","DTSTAMP:"+new Date().toISOString().replace(/[-:]/g,"").replace(".000",""),"DTSTART:20261028T160000Z","SUMMARY:Graduación Ing. Alexander Mejía","LOCATION:Auditorio Francisco Vela - Campus Central zona 12 - cerca del edificio T3","DESCRIPTION:Lleva identificación de estudiante o DPI y confirma tu asistencia en la invitación.","END:VEVENT","END:VCALENDAR"].join("\r\n");
     const url=URL.createObjectURL(new Blob([text],{type:"text/calendar;charset=utf-8"})); const a=document.createElement("a");a.href=url;a.download="graduacion-alexander.ics";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
@@ -164,6 +171,71 @@
   $("dropzone").addEventListener("dragover",event=>{event.preventDefault();$("dropzone").classList.add("dragging");});
   $("dropzone").addEventListener("dragleave",()=>$("dropzone").classList.remove("dragging"));
   $("dropzone").addEventListener("drop",event=>{event.preventDefault();$("dropzone").classList.remove("dragging");void upload(event.dataTransfer.files);});
+
+  // A fixed number of CSS particles keeps the celebration light on mobile.
+  const reducedMotion=matchMedia("(prefers-reduced-motion: reduce)");
+  const smallScreen=matchMedia("(max-width: 760px)");
+  let effectsEnabled=true;
+  try {effectsEnabled=sessionStorage.getItem("graduacion-effects")!=="off";} catch {}
+  function createRain() {
+    const layer=$("celebration-rain");layer.replaceChildren();
+    if(reducedMotion.matches) return;
+    const count=smallScreen.matches ? 16 : 28;
+    const emojis=["🎓","🎊","🎓","🎉","✨","🎓","🎊"];
+    const particles=document.createDocumentFragment();
+    for(let i=0;i<count;i++) {
+      const piece=document.createElement("span");piece.className="celebration-particle";piece.textContent=emojis[i%emojis.length];
+      piece.style.setProperty("--left",((i+.3)/count*100).toFixed(2)+"%");
+      piece.style.setProperty("--size",(smallScreen.matches ? 17+i%4*2 : 20+i%5*2)+"px");
+      piece.style.setProperty("--duration",(11+i%7)+"s");
+      piece.style.setProperty("--delay",(-i*1.83)+"s");
+      piece.style.setProperty("--drift",(i%2 ? 38 : -38)+"px");
+      piece.style.setProperty("--spin",(i%2 ? 240 : -240)+"deg");particles.append(piece);
+    }
+    layer.append(particles);
+  }
+  function updateEffects() {
+    const active=effectsEnabled && !reducedMotion.matches;
+    document.documentElement.classList.toggle("effects-paused",!active || document.hidden);
+    const button=$("motion-toggle");button.hidden=false;button.disabled=reducedMotion.matches;
+    button.setAttribute("aria-pressed",String(active));
+    button.textContent=reducedMotion.matches ? "Efectos reducidos" : active ? "Ⅱ Pausar efectos" : "▷ Activar efectos";
+    button.setAttribute("aria-label",reducedMotion.matches ? "Efectos desactivados según tu preferencia de movimiento reducido" : active ? "Pausar confeti y animaciones" : "Activar confeti y animaciones");
+  }
+  $("motion-toggle").addEventListener("click",()=>{
+    effectsEnabled=!effectsEnabled;
+    try {sessionStorage.setItem("graduacion-effects",effectsEnabled ? "on" : "off");} catch {}
+    updateEffects();
+  });
+  reducedMotion.addEventListener("change",()=>{createRain();updateEffects();});
+  smallScreen.addEventListener("change",createRain);
+  document.addEventListener("visibilitychange",updateEffects);
+  createRain();updateEffects();
+  function celebrateConfirmation() {
+    if(!effectsEnabled || reducedMotion.matches || !$("confirmed-state").animate) return;
+    $("confirmed-state").animate([{opacity:.4,transform:"translateY(8px)"},{opacity:1,transform:"translateY(0)"}],{duration:400,easing:"ease-out"});
+  }
+  function updateCountdown() {
+    const remaining=Math.max(0,new Date(config.eventStartsAt || "2026-10-28T10:00:00-06:00").getTime()-Date.now());
+    const total=Math.floor(remaining/1000);
+    const values={days:Math.floor(total/86400),hours:Math.floor(total/3600)%24,minutes:Math.floor(total/60)%60,seconds:total%60};
+    for(const [unit,value] of Object.entries(values)) $("countdown-"+unit).textContent=String(value).padStart(2,"0");
+    if(!remaining) {
+      const eventDay=Date.now()<new Date("2026-10-29T00:00:00-06:00").getTime();
+      $("countdown-caption").textContent=eventDay ? "¡HOY CELEBRAMOS! 🎓" : "¡GRACIAS POR COMPARTIR ESTE LOGRO!";
+      $("countdown").hidden=true;
+    }
+  }
+  updateCountdown();setInterval(()=>{if(!document.hidden) updateCountdown();},1000);
+  if("IntersectionObserver" in window && !reducedMotion.matches) {
+    const reveal=new IntersectionObserver(entries=>{
+      for(const entry of entries) if(entry.isIntersecting) {entry.target.classList.add("is-visible");reveal.unobserve(entry.target);}
+    },{threshold:.12});
+    document.querySelectorAll(".how-it-works li,.event-grid>h2,.album-heading,.closing h2").forEach(element=>{element.classList.add("reveal-ready");reveal.observe(element);});
+  }
+  // Keep the fixed action away from the phone keyboard and active form fields.
+  document.addEventListener("focusin",event=>{if(event.target.matches("input:not([type=checkbox]),textarea")) document.documentElement.classList.add("input-focused");});
+  document.addEventListener("focusout",()=>{requestAnimationFrame(()=>{if(!document.activeElement?.matches("input:not([type=checkbox]),textarea")) document.documentElement.classList.remove("input-focused");});});
   void refreshMe();
   setInterval(()=>{if(document.visibilityState==="visible") {void refreshMe();if(me?.albumOpen) void loadMedia();}},30000);
 })();
