@@ -1,0 +1,7 @@
+/.env*
+/.dev.vars*
+/.sites-runtime/
+/outputs/
+*.pem
+*credentials*.json
+*service-account*.json

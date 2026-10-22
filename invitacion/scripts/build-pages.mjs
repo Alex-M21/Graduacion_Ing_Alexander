@@ -1,0 +1,11 @@
+import {mkdir,readFile,writeFile,copyFile} from "node:fs/promises";
+import path from "node:path";
+const output=path.resolve(process.argv[2] || "../docs");
+const body=await readFile(new URL("../web/body.html",import.meta.url),"utf8");
+await mkdir(output,{recursive:true});
+const html='<!doctype html>\n<html lang="es-GT"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#ef6c2f"><title>Graduación · Ing. Alexander Mejía</title><meta name="description" content="28 de octubre, 10 a. m. Auditorio Francisco Vela. Confirma tu asistencia y comparte los recuerdos."><link rel="icon" href="./favicon.svg"><link rel="stylesheet" href="./styles.css"><script defer src="./config.js"></script><script defer src="./app.js"></script></head><body>'+body+'</body></html>\n';
+await writeFile(path.join(output,"index.html"),html);
+await writeFile(path.join(output,".nojekyll"),"");
+for(const name of ["styles.css","app.js","config.js"]) await copyFile(new URL("../public/web/"+name,import.meta.url),path.join(output,name));
+await copyFile(new URL("../public/favicon.svg",import.meta.url),path.join(output,"favicon.svg"));
+console.log("GitHub Pages assets prepared: "+output);
