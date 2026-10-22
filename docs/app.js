@@ -78,13 +78,6 @@
     try {await navigator.clipboard.writeText(url);toast("Acceso privado copiado. Guárdalo y no lo compartas.");}
     catch {message("registration-notice","Guarda tu acceso privado: "+url);}
   });
-  $("share-invitation").addEventListener("click",async()=>{
-    const url=publicUrl();
-    try { if(navigator.share) await navigator.share({title:"Graduación Ing. Alexander Mejía",text:"Formas parte de quien soy hoy y de los logros que he alcanzado. Acompáñame a celebrar mi graduación como Ingeniero en Ciencias y Sistemas este miércoles 28 de octubre, a las 10:00 a. m.",url}); else {await navigator.clipboard.writeText(url);toast("Enlace de la invitación copiado.");} }
-    catch(error) {if(error.name!=="AbortError") toast("Comparte este enlace: "+url);}
-  });
-  // Share the public invitation only; a guest's private access stays on this device.
-  $("share-whatsapp").href="https://wa.me/?text="+encodeURIComponent("Una meta más. Un sueño cumplido. Este acto está dedicado a quienes formaron parte de mi camino para ser Ingeniero en Ciencias y Sistemas. Gracias por ser parte de quien soy hoy y por acompañarme a celebrar.\n\n🎓 Graduación de Alexander Mejía\n📅 Miércoles 28 de octubre de 2026 · 10:00 a. m.\n📍 Auditorio Francisco Vela, Campus Central, zona 12.\n¡Te esperamos! Confirma tu asistencia aquí: "+publicUrl());
   $("calendar-button").addEventListener("click",()=>{
     const text=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Alexander Mejia//Graduacion//ES","BEGIN:VEVENT","UID:alexander-graduacion-20261028","DTSTAMP:"+new Date().toISOString().replace(/[-:]/g,"").replace(".000",""),"DTSTART:20261028T160000Z","SUMMARY:Graduación Ing. Alexander Mejía","LOCATION:Auditorio Francisco Vela - Campus Central zona 12 - cerca del edificio T3","DESCRIPTION:Lleva identificación de estudiante o DPI y confirma tu asistencia en la invitación.","END:VEVENT","END:VCALENDAR"].join("\r\n");
     const url=URL.createObjectURL(new Blob([text],{type:"text/calendar;charset=utf-8"})); const a=document.createElement("a");a.href=url;a.download="graduacion-alexander.ics";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
