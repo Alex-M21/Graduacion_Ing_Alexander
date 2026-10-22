@@ -314,7 +314,7 @@ nav>a{min-height:44px;display:inline-flex;align-items:center}
 .closing>.eyebrow{color:var(--muted)}
 .closing-signature{font-family:Georgia,serif;font-size:23px;color:var(--gray);font-style:italic}
 .closing .text-button{color:var(--gray);border-color:#999}
-.input-focused .celebration-rain,.viewer-open .celebration-rain{visibility:hidden}
+.viewer-open .celebration-rain{visibility:hidden}
 
 /* A full-photo viewer, with native video playback and keyboard navigation. */
 .viewer{width:min(1100px,calc(100vw - 40px));max-width:none;max-height:calc(100dvh - 32px);padding:18px 22px 20px;background:#20211e;color:white;border-radius:16px;overflow:auto;box-shadow:0 30px 100px #0006;overscroll-behavior:contain}
