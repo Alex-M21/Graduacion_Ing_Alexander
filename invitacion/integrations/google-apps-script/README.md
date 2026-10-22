@@ -32,6 +32,8 @@ Comprueba en Drive que las fotos, los videos y las filas del listado estén pres
 
 Las copias previas de archivos se conservan como respaldo en el almacenamiento anterior. La migración nunca las borra. Cambiar de conexión después de subir archivos requiere mantener el acceso a sus carpetas anteriores; no apuntar a otra carpeta sin migrarlos.
 
+Para usar «Eliminar» en el listado del administrador con Drive conectado, actualiza tu implementación de Apps Script con el `Code.gs` actual, que incluye `deleteRecord`. Conserva las propiedades y la clave de la conexión. Esta operación elimina únicamente la fila del invitado en Sheets y conserva sus fotos y videos.
+
 ## Límites y permisos
 
 - Los invitados no reciben permisos de edición ni eliminación en tu Drive.

@@ -11,6 +11,7 @@ Diseño en azul marino, dorado y marfil, inspirado en la invitación proporciona
 - Fotos JPG/PNG/WebP de hasta 8 MB en el servidor; el navegador convierte originales de hasta 20 MB a JPEG y elimina sus metadatos. Videos MP4/MOV/WebM de hasta 50 MB, con progreso de subida y reproducción por rangos. La reproducción depende del códec del navegador.
 - Galería con filtros, paginación y vista ampliada; sin opciones para editar ni borrar. Las rutas del servidor también rechazan esas operaciones.
 - Listado y conexión de Drive reservados al correo del organizador, autenticado por Sites. Los invitados no necesitan ChatGPT ni Google.
+- El organizador puede eliminar un registro desde `/admin`, con confirmación. Se borran sus datos y se revoca su acceso; sus fotos y videos permanecen en el álbum sin vincularlos al registro eliminado. Si Drive está conectado, primero se elimina la fila de Sheets; un fallo de esa conexión conserva el registro y muestra el error.
 
 ## GitHub Pages y Drive
 
@@ -88,6 +89,7 @@ node --test tests/drive.test.mjs
 node scripts/qa-browser.mjs
 node scripts/qa-gallery.mjs
 node scripts/qa-invitation-pdf.mjs
+node scripts/qa-admin.mjs
 ```
 
 La prueba de navegador requiere el servidor local, una clave de pruebas y Chrome instalado. Escribe registros sintéticos solo en la base local y prueba la reproducción con un video generado en el navegador. `CHROME_PATH` permite indicar el ejecutable. La API se prueba en un Worker con D1/R2 efímeros. La integración de Drive se prueba con respuestas simuladas: la autorización real y el guardado en tu cuenta deben verificarse al conectarla.
@@ -95,5 +97,7 @@ La prueba de navegador requiere el servidor local, una clave de pruebas y Chrome
 `qa-gallery.mjs` comprueba las fotos del lugar, el visor con teclado y deslizamiento, la cuadrícula en varios tamaños y los filtros de fotos y videos. Su colección del día del evento se simula solo en el navegador: no crea invitados ni sube archivos al servidor. Guarda capturas en `.sites-runtime/gallery/`.
 
 `qa-invitation-pdf.mjs` usa un servidor local (`QA_BASE_URL`, por defecto `http://127.0.0.1:8788/`) y simula el registro solo en el navegador. Verifica descarga de un PDF real, reintento tras fallo, tildes, nombres largos, corrección de nombre, regreso del invitado y retiro de asistencia; guarda ejemplos en `.sites-runtime/invitation-pdf/`. No escribe registros ni archivos en un servidor alojado.
+
+`qa-admin.mjs` revisa el panel con un servidor local de Sites (`QA_BASE_URL`, por defecto `http://127.0.0.1:8787`). Simula invitados y solicitudes DELETE en el navegador para comprobar cancelación, fallo, reintento, eliminación y totales actualizados. No elimina registros reales.
 
 Conservar `CUI_ENCRYPTION_KEY` y `ADMIN_EMAIL` en el entorno del servidor. No registrar ni publicar credenciales, pases ni CSV con invitados. Mantener el `project_id` de `.openai/hosting.json`; seguir el flujo de Sites para publicar el servidor. El workflow de la raíz publica únicamente `docs/` en GitHub Pages.

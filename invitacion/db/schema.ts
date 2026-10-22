@@ -13,7 +13,7 @@ export const guests = sqliteTable("guests", {
 });
 export const photos = sqliteTable("photos", {
   id: text("id").primaryKey(),
-  userId: text("user_id").notNull().references(() => guests.userId),
+  userId: text("user_id").references(() => guests.userId,{onDelete:"set null"}),
   objectKey: text("object_key").notNull().unique(),
   contentType: text("content_type").notNull(),
   bytes: integer("bytes").notNull(),

@@ -36,6 +36,9 @@ function doPost(e) {
     if(body.action==='record') {
       saveRecord_(body.payload,p);return output_({ok:true,data:{saved:true}});
     }
+    if(body.action==='deleteRecord') {
+      deleteRecord_(body.payload,p);return output_({ok:true,data:{deleted:true}});
+    }
     throw new Error('Unsupported action');
   } catch(error) {return output_({ok:false,error:'No se pudo completar la operación de Drive.'});}
 }
@@ -67,6 +70,19 @@ function saveRecord_(record,p) {
   } finally {lock.releaseLock();}
 }
 function safeCell_(value) {value=String(value || '');return /^[\s]*[=+@-]/.test(value) ? "'"+value : value;}
+function deleteRecord_(record,p) {
+  if(!record || !/^[a-zA-Z0-9_-]{1,100}$/.test(String(record.id))) throw new Error('Invalid record');
+  info_(p);
+  var lock=LockService.getScriptLock();
+  if(!lock.tryLock(20000)) throw new Error('Busy');
+  try {
+    var sheet=SpreadsheetApp.openById(p.getProperty('SHEET_ID')).getSheetByName('Invitados');
+    var ids=sheet.getLastRow()>1 ? sheet.getRange(2,1,sheet.getLastRow()-1,1).getDisplayValues() : [];
+    var index=ids.findIndex(function(row){return row[0]===record.id;});
+    if(index>=0) sheet.deleteRow(index+2);
+    SpreadsheetApp.flush();
+  } finally {lock.releaseLock();}
+}
 function equalSecret_(given,expected) {
   if(!/^[a-f0-9]{64}$/.test(given) || !/^[a-f0-9]{64}$/.test(expected)) return false;
   var a=Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256,given);

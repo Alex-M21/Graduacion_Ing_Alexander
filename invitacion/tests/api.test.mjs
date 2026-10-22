@@ -8,13 +8,13 @@ test('anonymous web registration, private receipt, photos/videos, range playback
   await mkdir('.sites-runtime',{recursive:true});
   const output = await build({
     stdin:{contents:`
-      import {GET,POST,HEAD,OPTIONS} from "./app/api/[...path]/route";
+      import {GET,POST,DELETE,HEAD,OPTIONS} from "./app/api/[...path]/route";
       export default {async fetch(request){
         const account = request.headers.get("x-test-account");
         globalThis.__testUser = account ? {userId:account,email:account+"@example.test",displayName:account} : null;
         const originalNow = Date.now;
         Date.now = () => Date.parse(request.headers.get("x-test-now") || "2026-10-22T00:00:00-06:00");
-        try {return await ({GET,POST,HEAD,OPTIONS}[request.method] || (()=>new Response(null,{status:405})))(request);}
+        try {return await ({GET,POST,DELETE,HEAD,OPTIONS}[request.method] || (()=>new Response(null,{status:405})))(request);}
         finally {Date.now = originalNow;}
       }}
     `,resolveDir:process.cwd(),loader:'ts'},
@@ -28,9 +28,17 @@ test('anonymous web registration, private receipt, photos/videos, range playback
   try {
     const {DB,BUCKET} = await mf.getBindings();
     for (const file of (await readdir(new URL('../drizzle/',import.meta.url))).filter(file=>file.endsWith('.sql')).sort()) {
+      if(file.startsWith('0003_')) {
+        await DB.prepare("INSERT INTO guests(user_id,full_name,email,cui_encrypted,cui_hash,attendance,consent_at,created_at) VALUES('migration-guest','Test','test@example.test','test','test','yes','2026','2026')").run();
+        await DB.prepare("INSERT INTO photos(id,user_id,object_key,content_type,bytes,created_at) VALUES('migration-photo','migration-guest','migration-photo','image/jpeg',1,'2026')").run();
+      }
       const sql = await readFile(new URL('../drizzle/'+file,import.meta.url),'utf8');
       for (const statement of sql.split('--> statement-breakpoint').map(s=>s.trim()).filter(Boolean)) await DB.prepare(statement).run();
     }
+    assert.equal((await DB.prepare("SELECT user_id FROM photos WHERE id='migration-photo'").first()).user_id,'migration-guest','migration preserves existing media ownership');
+    await DB.prepare("DELETE FROM guests WHERE user_id='migration-guest'").run();
+    assert.equal((await DB.prepare("SELECT user_id FROM photos WHERE id='migration-photo'").first()).user_id,null,'deleted guest detaches existing media');
+    await DB.prepare("DELETE FROM photos WHERE id='migration-photo'").run();
     let pass = '';
     async function request(path,method='GET',body,extra={}) {
       const bytes = body instanceof Uint8Array;
@@ -98,5 +106,21 @@ test('anonymous web registration, private receipt, photos/videos, range playback
     pass=alicePass; await request('rsvp','POST',{...payload,attendance:'no'});
     assert.equal((await request(video.url)).status,403); // Links lose access when attendance is withdrawn.
     assert.ok(await BUCKET.head('event/photos/'+videoId));
+    const aliceId=admin.guests.find(g=>g.email===payload.email).id;
+    assert.equal((await request('admin/guests/'+aliceId,'DELETE')).status,403,'guest cannot delete a registration');
+    assert.equal((await request('admin/guests/'+aliceId,'DELETE',undefined,{'x-test-account':'intruder'})).status,403);
+    assert.equal((await request('admin/guests/'+aliceId,'DELETE',undefined,{'x-test-account':'organizer',origin:'https://attacker.test'})).status,403);
+    assert.equal((await request('admin/guests/'+aliceId,'DELETE',undefined,{'x-test-account':'organizer',origin:''})).status,403);
+    assert.equal((await request('admin/guests/'+aliceId,'DELETE',undefined,{'x-test-account':'organizer'})).status,200);
+    assert.equal((await request('admin/guests/'+aliceId,'DELETE',undefined,{'x-test-account':'organizer'})).status,404);
+    assert.equal((await (await request('me')).json()).guest,null,'private pass is revoked');
+    assert.equal((await request(video.url)).status,403,'old signed links are revoked');
+    assert.equal((await DB.prepare('SELECT user_id FROM photos WHERE id=?').bind(videoId).first()).user_id,null);
+    assert.ok(await BUCKET.head('event/photos/'+videoId),'uploaded media is retained');
+    const remaining=await (await request('admin/guests','GET',undefined,{'x-test-account':'organizer'})).json();
+    assert.equal(remaining.guests.length,1);assert.equal(remaining.guests[0].fullName,'Bob Invitado Prueba');
+    pass=(await (await request('rsvp','POST',payload)).json()).guestPass;
+    assert.match(pass,/^[a-f0-9]{64}$/,'deleted CUI can register again');
+    assert.equal((await (await request('photos')).json()).photos.length,4,'retained album remains available');
   } finally {await mf.dispose();}
 });

@@ -28,6 +28,7 @@ async function readLimited(request: Request,max: number) {
 }
 export async function GET(request: Request) { return handle(request); }
 export async function POST(request: Request) { return handle(request); }
+export async function DELETE(request: Request) { return handle(request); }
 export async function HEAD(request: Request) { return handle(request); }
 export async function OPTIONS(request: Request) { return handle(request); }
 async function handle(request: Request): Promise<Response> {
@@ -38,7 +39,7 @@ async function handle(request: Request): Promise<Response> {
   const headers=new Headers(response.headers);
   if(origin && allowed.has(origin)) {
     headers.set("Access-Control-Allow-Origin",origin);headers.set("Vary","Origin");
-    headers.set("Access-Control-Allow-Methods","GET, POST, HEAD, OPTIONS");
+    headers.set("Access-Control-Allow-Methods","GET, POST, DELETE, HEAD, OPTIONS");
     headers.set("Access-Control-Allow-Headers","Content-Type, X-Guest-Pass, X-Upload-Size, Range");
     headers.set("Access-Control-Expose-Headers","Content-Length, Content-Range, Accept-Ranges");
     headers.set("Access-Control-Max-Age","600");
@@ -56,7 +57,7 @@ async function mirrorIfConnected(userId: string,key: string) {
 async function dispatch(request: Request): Promise<Response> {
   try {
     const url = new URL(request.url); const path = url.pathname.replace(/\/$/,"");
-    if (request.method === "POST") {
+    if (request.method === "POST" || request.method === "DELETE") {
       const origin = request.headers.get("origin");
       if (!origin || ![url.origin,"https://alex-m21.github.io"].includes(origin)) return json({error:"Solicitud no permitida."},403);
     }
@@ -131,11 +132,26 @@ async function dispatch(request: Request): Promise<Response> {
       }
       return json({error:"Ruta no encontrada."},404);
     }
+    const deleteGuest=/^\/api\/admin\/guests\/([a-zA-Z0-9_-]{1,100})$/.exec(path);
+    if(deleteGuest && request.method==="DELETE") {
+      if(!isAdmin) return json({error:"Acceso reservado al organizador."},403);
+      if(!env.CUI_ENCRYPTION_KEY) return json({error:"El listado no está disponible."},503);
+      const target=await db.query.guests.findFirst({where:eq(guests.userId,deleteGuest[1])});
+      if(!target) return json({error:"El registro ya no existe. Actualiza el listado."},404);
+      const connection=await getDriveConnection(env.CUI_ENCRYPTION_KEY);
+      if(connection) {
+        try {await driveCall(connection,"deleteRecord",{id:target.userId});}
+        catch {return json({error:"No se eliminó el registro. Revisa la conexión de Drive y actualiza la implementación de Apps Script para permitir eliminar registros."},503);}
+      }
+      // The nullable FK detaches existing media, preserving the shared album.
+      await db.delete(guests).where(eq(guests.userId,target.userId));
+      return json({ok:true});
+    }
     if (path === "/api/admin/guests" && request.method === "GET") {
       if (!isAdmin) return json({error:"Acceso reservado al organizador."},403);
       if (!env.CUI_ENCRYPTION_KEY) return json({error:"El listado no está disponible."},503);
       const rows = await db.select().from(guests).orderBy(guests.fullName);
-      const list = await Promise.all(rows.map(async g => ({fullName:g.fullName,email:g.email,cui:await decryptCui(g.cuiEncrypted,g.userId,env.CUI_ENCRYPTION_KEY!),attendance:g.attendance,createdAt:g.createdAt})));
+      const list = await Promise.all(rows.map(async g => ({id:g.userId,fullName:g.fullName,email:g.email,cui:await decryptCui(g.cuiEncrypted,g.userId,env.CUI_ENCRYPTION_KEY!),attendance:g.attendance,createdAt:g.createdAt})));
       if (url.searchParams.get("format") === "csv") {
         const lines = [["Nombre completo","Correo","CUI","Asistencia","Registro"],...list.map(g=>[g.fullName,g.email,g.cui,g.attendance === "yes" ? "Confirmada" : "No asistirá",g.createdAt])];
         return new Response("\uFEFF"+lines.map(row=>row.map(csvCell).join(",")).join("\r\n"),{headers:{...noCache,"Content-Type":"text/csv; charset=utf-8","Content-Disposition":'attachment; filename="invitados-graduacion.csv"'}});

@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {build} from "esbuild";
-import {mkdir} from "node:fs/promises";
+import {mkdir,readFile} from "node:fs/promises";
+import {runInNewContext} from "node:vm";
 test("Drive streams private media, supports ranges, rejects unsafe URLs and cancels failed uploads",async()=>{
   await mkdir(".sites-runtime",{recursive:true});
   await build({entryPoints:["lib/drive.ts"],outfile:".sites-runtime/drive-under-test.mjs",bundle:true,format:"esm",platform:"node",plugins:[{name:"database-boundary",setup(builder){
@@ -56,4 +57,17 @@ test("Drive streams private media, supports ranges, rejects unsafe URLs and canc
     await assert.rejects(store.put("drive:22222222-2222-4222-8222-222222222222",stream,{bytes:128,httpMetadata:{contentType:"video/mp4"}}));assert.equal(cancelled,true);
     await store.delete(key);assert.equal(files.size,0);
   } finally {globalThis.fetch=originalFetch;}
+});
+
+test("Drive bridge removes only the selected guest row and permits a harmless retry",async()=>{
+  const rows=[['guest_first'],['guest_second']];let released=0,flushed=0;
+  const sheet={getLastRow:()=>rows.length+1,getRange:()=>({getDisplayValues:()=>rows}),deleteRow:index=>rows.splice(index-2,1)};
+  const context={LockService:{getScriptLock:()=>({tryLock:()=>true,releaseLock:()=>released++})},SpreadsheetApp:{openById:()=>({getSheetByName:()=>sheet}),flush:()=>flushed++}};
+  runInNewContext(await readFile('integrations/google-apps-script/Code.gs','utf8'),context);
+  context.info_=()=>({});
+  const props={getProperty:()=> 'test-sheet'};
+  context.deleteRecord_({id:'guest_first'},props);
+  assert.deepEqual(rows,[['guest_second']]);assert.equal(released,1);assert.equal(flushed,1);
+  context.deleteRecord_({id:'guest_first'},props);assert.deepEqual(rows,[['guest_second']]);
+  assert.throws(()=>context.deleteRecord_({id:'../invalid'},props));
 });
