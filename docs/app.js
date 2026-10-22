@@ -30,7 +30,7 @@
       $("confirmed-title").textContent=attending ? "¡Estás en la lista!" : "Gracias por avisarme.";
       $("confirmed-name").textContent=me.guest.fullName+(attending ? ", nos vemos para celebrar." : ", espero que pronto podamos celebrar juntos.");
       $("album-entry").hidden=!attending;
-      $("album-entry").textContent=me.albumOpen ? "Ver fotos y videos del evento ↗" : "Ver cómo entrar al álbum el 28 de octubre ↗";
+      $("album-entry").textContent=me.albumOpen ? "Entrar y compartir mis recuerdos ↗" : "Consultar el álbum de recuerdos ↗";
       $("save-access").hidden=!pass; document.querySelector(".access-help").hidden=!pass;
       $("decline-rsvp").hidden=!attending;
     }
@@ -38,7 +38,7 @@
     $("album-content").hidden=!canEnter; $("album-locked").hidden=canEnter;
     $("album-preview").hidden=canEnter; $("album-upload-shortcut").hidden=!canEnter;
     $("album-register-link").hidden=me?.guest?.attendance==="yes";
-    $("album-locked-message").textContent=me?.guest?.attendance==="yes" ? "¡Ya confirmaste! Guarda tu acceso privado y vuelve el 28 de octubre. Aquí podrás subir fotos y videos y ver los de los demás." : "Regístrate arriba. El 28 de octubre podrás entrar con tu acceso privado para subir y ver fotos y videos.";
+    $("album-locked-message").textContent=me?.guest?.attendance==="yes" ? "Tu asistencia está confirmada. Estamos preparando el álbum; actualiza la página en un momento." : "El álbum ya está abierto. Confirma tu asistencia o abre tu acceso privado para subir fotos y videos y ver los recuerdos de todos.";
     const attending=me?.guest?.attendance==="yes";
     $("mobile-action-link").href=canEnter ? "#album" : "#registro";
     $("mobile-action-link").textContent=canEnter ? "Ver fotos y videos ↗" : attending && !editing ? "Ver mi confirmación ↗" : "Confirmar asistencia ↗";
@@ -214,7 +214,7 @@
   async function upload(files) {
     if(busy || !files?.length) return;
     if(files.length>10) {message("album-error","Selecciona hasta 10 archivos a la vez.");return;}
-    if(me?.guest?.attendance!=="yes" || !me.albumOpen) {toast("El álbum se abre el día del evento para invitados confirmados.");return;}
+    if(me?.guest?.attendance!=="yes" || !me.albumOpen) {toast("Confirma tu asistencia o abre tu acceso privado para compartir tus recuerdos.");return;}
     busy=true;message("album-error","");let completed=0;
     const inputs=document.querySelectorAll(".upload-buttons input");inputs.forEach(input=>input.disabled=true);$("upload-progress").hidden=false;
     try {

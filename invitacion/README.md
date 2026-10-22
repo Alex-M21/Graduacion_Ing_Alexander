@@ -6,7 +6,7 @@ Diseño en azul marino, dorado y marfil, inspirado en la invitación proporciona
 
 - Confirmación directa en una sola pantalla: nombre completo, correo, CUI y consentimiento. Sin crear una cuenta ni elegir pasos adicionales.
 - Registro cifrado en el servidor y pase privado de recuperación. El CUI se valida por formato, sin consultar RENAP ni acreditar identidad.
-- Álbum de fotos y videos desde el 28 de octubre a las 00:00, hora de Guatemala, solo para invitados confirmados. Cada cuenta de invitado puede compartir hasta 50 archivos, seleccionando hasta 10 por envío.
+- Álbum de fotos y videos abierto desde el 22 de octubre a las 00:00, hora de Guatemala, solo para invitados confirmados. Permite compartir recuerdos antes de la graduación. Cada cuenta de invitado puede compartir hasta 50 archivos, seleccionando hasta 10 por envío.
 - Fotos JPG/PNG/WebP de hasta 8 MB en el servidor; el navegador convierte originales de hasta 20 MB a JPEG y elimina sus metadatos. Videos MP4/MOV/WebM de hasta 50 MB, con progreso de subida y reproducción por rangos. La reproducción depende del códec del navegador.
 - Galería con filtros, paginación y vista ampliada; sin opciones para editar ni borrar. Las rutas del servidor también rechazan esas operaciones.
 - Listado y conexión de Drive reservados al correo del organizador, autenticado por Sites. Los invitados no necesitan ChatGPT ni Google.

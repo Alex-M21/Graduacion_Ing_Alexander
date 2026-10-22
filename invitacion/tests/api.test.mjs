@@ -13,7 +13,7 @@ test('anonymous web registration, private receipt, photos/videos, range playback
         const account = request.headers.get("x-test-account");
         globalThis.__testUser = account ? {userId:account,email:account+"@example.test",displayName:account} : null;
         const originalNow = Date.now;
-        Date.now = () => Date.parse(request.headers.get("x-test-now") || "2026-10-28T00:00:00-06:00");
+        Date.now = () => Date.parse(request.headers.get("x-test-now") || "2026-10-22T00:00:00-06:00");
         try {return await ({GET,POST,HEAD,OPTIONS}[request.method] || (()=>new Response(null,{status:405})))(request);}
         finally {Date.now = originalNow;}
       }}
@@ -50,11 +50,12 @@ test('anonymous web registration, private receipt, photos/videos, range playback
     assert.equal((await request('rsvp','POST',payload,{origin:'https://attacker.test'})).status,403);
     assert.equal((await request('rsvp','POST',{...payload,consent:false})).status,400);
     const register = await request('rsvp','POST',payload); assert.equal(register.status,200); pass = (await register.json()).guestPass; assert.match(pass,/^[a-f0-9]{64}$/);
-    const me = await (await request('me')).json(); assert.equal(me.guest.fullName,payload.fullName); assert.equal('cui' in me.guest,false);
+    const me = await (await request('me')).json(); assert.equal(me.guest.fullName,payload.fullName); assert.equal('cui' in me.guest,false); assert.equal(me.albumOpen,true);
     const stored = await DB.prepare('SELECT * FROM guests').first();
     assert.ok(!JSON.stringify(stored).includes(payload.cui)); assert.notEqual(stored.access_hash,pass);
-    assert.equal((await request('photos','GET',undefined,{'x-test-now':'2026-10-27T23:59:59-06:00'})).status,403);
+    assert.equal((await request('photos','GET',undefined,{'x-test-now':'2026-10-21T23:59:59-06:00'})).status,403);
     const image = Uint8Array.from(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+XH1sAAAAASUVORK5CYII=','base64'));
+    assert.equal((await request('photos','POST',image,{'x-test-now':'2026-10-21T23:59:59-06:00'})).status,403);
     assert.equal((await request('photos','POST',new TextEncoder().encode('<svg onload="alert(1)">not a real image file</svg>'))).status,400);
     const photoResponse = await request('photos','POST',image); assert.equal(photoResponse.status,201); const photoId = (await photoResponse.json()).id;
     const mp4 = new Uint8Array(1024); mp4.set([0,0,0,24]); mp4.set(new TextEncoder().encode('ftypisom'),4);
@@ -79,7 +80,7 @@ test('anonymous web registration, private receipt, photos/videos, range playback
     assert.equal((await request('photos/'+photoId)).status,403);
     assert.equal((await request(video.url)).status,200); // Scoped URL grants only this media, not the guest record.
     assert.equal((await request(video.url.replace('signature=','signature=0'))).status,403);
-    assert.equal((await request(video.url,'GET',undefined,{'x-test-now':'2026-10-28T02:00:00-06:00'})).status,403);
+    assert.equal((await request(video.url,'GET',undefined,{'x-test-now':'2026-10-22T02:00:00-06:00'})).status,403);
     assert.equal((await request('photos')).status,403);
     const duplicate = await request('rsvp','POST',payload); assert.equal(duplicate.status,409);
     pass='0'.repeat(64); assert.equal((await (await request('me')).json()).guest,null);

@@ -14,7 +14,7 @@ Portada con fotos del campus, galería del lugar con las cuatro imágenes propor
 - [Pasos para autorizar Google Drive](invitacion/integrations/google-apps-script/README.md).
 - [Panel privado del organizador](https://celebramos-alexander.mellowwolf11.chatgpt.site/admin).
 
-El invitado completa nombre, correo, CUI y consentimiento sin crear una cuenta. Recibe un acceso privado para volver al registro y al álbum. El álbum se habilita el día del evento y rechaza la edición y el borrado, incluso para quien subió el archivo.
+El invitado completa nombre, correo, CUI y consentimiento sin crear una cuenta. Recibe un acceso privado para volver al registro y al álbum. El álbum está habilitado desde el 22 de octubre de 2026 para compartir recuerdos desde antes de la graduación y rechaza la edición y el borrado, incluso para quien subió el archivo.
 
 Estudiantes: llevar identificación de estudiante. Si no son estudiantes: llevar DPI e indicar que asisten a la graduación. Pueden mostrar la invitación, llevando siempre su identificación.
 

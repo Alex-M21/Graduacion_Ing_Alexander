@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { encryptCui, decryptCui, hashCui, normalizeRegistration, albumIsOpen, csvCell, photoType } from '../lib/security.ts';
+import {event} from '../lib/event.ts';
 const key = Buffer.alloc(32,7).toString('base64');
 const registration = { fullName:'  Invitado   de Prueba  ', email:'INVITADO@example.test', cui:'1234 56789 0123', attendance:'yes', consent:true };
 test('CUI is encrypted with a fresh IV, bound to its owner, and recoverable only with the key', async () => {
@@ -19,10 +20,10 @@ test('registration normalizes input and rejects invalid or nonconsensual records
   assert.deepEqual(normalizeRegistration(registration), { fullName:'Invitado de Prueba',email:'invitado@example.test',cui:'1234567890123',attendance:'yes' });
   for (const replacement of [{fullName:'Ana'}, {email:'invalid'}, {cui:'123'}, {attendance:'maybe'}, {consent:false}]) assert.throws(() => normalizeRegistration({...registration,...replacement}));
 });
-test('album opens exactly at midnight Guatemala on October 28', () => {
-  const opens = '2026-10-28T00:00:00-06:00';
-  assert.equal(albumIsOpen(opens,Date.parse('2026-10-28T05:59:59.999Z')),false);
-  assert.equal(albumIsOpen(opens,Date.parse('2026-10-28T06:00:00Z')),true);
+test('album is available from October 22, before graduation, in Guatemala time', () => {
+  assert.equal(albumIsOpen(event.albumOpensAt,Date.parse('2026-10-22T05:59:59.999Z')),false);
+  assert.equal(albumIsOpen(event.albumOpensAt,Date.parse('2026-10-22T06:00:00Z')),true);
+  assert.equal(albumIsOpen(event.albumOpensAt,Date.parse('2026-10-27T12:00:00-06:00')),true);
 });
 test('CSV quotes and formula prefixes are escaped', () => {
   assert.equal(csvCell('A "name"'),'"A ""name"""');

@@ -144,7 +144,7 @@ async function dispatch(request: Request): Promise<Response> {
     }
     if (path === "/api/photos" || mediaMatch) {
       if (guest?.attendance !== "yes") return json({error:"Confirma tu asistencia o abre tu enlace privado para entrar al álbum."},403);
-      if (!albumIsOpen(event.albumOpensAt)) return json({error:"El álbum se habilitará el 28 de octubre, hora de Guatemala."},403);
+      if (!albumIsOpen(event.albumOpensAt)) return json({error:"El álbum todavía no está disponible. Intenta de nuevo más tarde."},403);
       if (!env.CUI_ENCRYPTION_KEY) return json({error:"El álbum no está disponible. Intenta más tarde."},503);
       if (mediaMatch) {
         if (request.method !== "GET" && request.method !== "HEAD") return json({error:"No se permite modificar ni borrar fotos ni videos."},405);
