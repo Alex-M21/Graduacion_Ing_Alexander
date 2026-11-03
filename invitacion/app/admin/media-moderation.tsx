@@ -1,6 +1,6 @@
 "use client";
 import {useEffect,useRef,useState} from "react";
-import {Eye,EyeOff,RefreshCw,Trash2,ExternalLink} from "lucide-react";
+import {Eye,EyeOff,RefreshCw,Trash2,ExternalLink,Download} from "lucide-react";
 type Media={id:string;url:string;kind:"photo"|"video";contentType:string;bytes:number;createdAt:string;hiddenAt:string|null;uploaderName:string|null};
 type Stats={files:number;bytes:number;hidden:number};
 function size(bytes:number) {return bytes<1024 ? bytes+" B" : bytes<1024**2 ? (bytes/1024).toFixed(1)+" KB" : bytes<1024**3 ? (bytes/1024**2).toFixed(2)+" MB" : (bytes/1024**3).toFixed(2)+" GB";}
@@ -72,6 +72,7 @@ export default function MediaModeration() {
           <p className="moderation-uploader">{item.uploaderName || "Invitado con registro eliminado"}</p>
           <p className="moderation-meta">{item.kind==="video" ? "Video" : "Foto"} · {size(item.bytes)} · {new Date(item.createdAt).toLocaleDateString("es-GT",{timeZone:"America/Guatemala",day:"numeric",month:"short"})}</p>
           <a className="text-button" href={item.url} target="_blank" rel="noopener noreferrer">Ver original <ExternalLink size={12}/></a>
+          <div className="moderation-actions"><a className="moderation-visibility" href={"/api/admin/media/"+encodeURIComponent(item.id)+"/download"} download><Download size={16}/> Descargar {item.kind==="video" ? "video" : "foto"}</a></div>
           <div className="moderation-actions"><button type="button" className="moderation-visibility" disabled={!!busy || loading} onClick={()=>void moderate(item,"visibility")}>{item.hiddenAt ? <Eye size={15}/> : <EyeOff size={15}/>} {item.hiddenAt ? "Volver a mostrar" : "Ocultar"}</button><button type="button" className="admin-delete" disabled={!!busy || loading} onClick={()=>void moderate(item,"delete")}><Trash2 size={15}/> Eliminar</button></div>
           {busy===item.id && <p role="status">Actualizando recuerdo…</p>}
         </div>

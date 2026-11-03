@@ -123,6 +123,26 @@ test('anonymous web registration, private receipt, photos/videos, range playback
     assert.match(pass,/^[a-f0-9]{64}$/,'deleted CUI can register again');
     assert.equal((await (await request('photos')).json()).photos.length,4,'retained album remains available');
     const organizer={'x-test-account':'organizer'};
+    for(const identity of [{},{'x-test-account':'intruder'}]) {
+      for(const method of ['GET','HEAD']) assert.equal((await request('admin/media/'+photoId+'/download',method,undefined,identity)).status,403);
+    }
+    const savedPass=pass;pass='';
+    assert.equal((await request('admin/media/'+videoId+'/download')).status,403,'anonymous downloads are denied');
+    pass=savedPass;
+    for(const [id,original,mime,extension] of [[photoId,image,'image/png','png'],[videoId,mp4,'video/mp4','mp4']]) {
+      const downloaded=await request('admin/media/'+id+'/download','GET',undefined,organizer);
+      assert.equal(downloaded.status,200);assert.equal(downloaded.headers.get('content-type'),mime);
+      assert.equal(downloaded.headers.get('content-disposition'),`attachment; filename="graduacion-alexander-${mime.startsWith('video/') ? 'video' : 'foto'}-${id}.${extension}"`);
+      assert.deepEqual(new Uint8Array(await downloaded.arrayBuffer()),original,'download preserves original file bytes');
+      assert.equal(downloaded.headers.get('cache-control'),'private, no-store');
+      const downloadHead=await request('admin/media/'+id+'/download','HEAD',undefined,organizer);
+      assert.equal(downloadHead.headers.get('content-length'),String(original.length));assert.equal((await downloadHead.arrayBuffer()).byteLength,0);
+      assert.match(downloadHead.headers.get('content-disposition'),/^attachment;/);
+    }
+    const downloadRange=await request('admin/media/'+videoId+'/download','GET',undefined,{...organizer,range:'bytes=10-29'});
+    assert.equal(downloadRange.status,206);assert.deepEqual(new Uint8Array(await downloadRange.arrayBuffer()),mp4.slice(10,30));
+    assert.equal((await request('admin/media/'+videoId+'/download','POST',{},organizer)).status,405);
+    assert.equal((await request('admin/media/'+videoId+'/file','GET',undefined,organizer)).headers.get('content-disposition'),'inline');
     assert.equal((await request('admin/media')).status,403);
     assert.equal((await request('admin/media','GET',undefined,{'x-test-account':'intruder'})).status,403);
     assert.equal((await request('admin/media/'+photoId+'/file')).status,403);
@@ -142,6 +162,7 @@ test('anonymous web registration, private receipt, photos/videos, range playback
     const hiddenAdmin=await (await request('admin/media?visibility=hidden&kind=photo','GET',undefined,organizer)).json();
     assert.equal(hiddenAdmin.media.length,1);assert.equal(hiddenAdmin.stats.hidden,1);assert.equal(hiddenAdmin.stats.bytes,mediaAdmin.stats.bytes);
     assert.equal((await request('admin/media/'+photoId+'/file','GET',undefined,organizer)).status,200,'organizer can review hidden photos');
+    assert.equal((await request('admin/media/'+photoId+'/download','GET',undefined,organizer)).status,200,'organizer can download hidden photos');
     assert.equal((await request('admin/media/'+videoId+'/file','GET',undefined,{...organizer,range:'bytes=10-29'})).status,206);
     assert.equal((await request('admin/media/'+photoId+'/visibility','POST',{hidden:false},organizer)).status,200);
     assert.equal((await request(activePhoto.url)).status,200,'restoring makes photo available again');
@@ -169,6 +190,7 @@ test('anonymous web registration, private receipt, photos/videos, range playback
     assert.equal((await request(beforePause.url)).status,403);
     assert.equal((await request('photos/'+beforePause.id+'/access')).status,403);
     assert.equal((await request('admin/media/'+beforePause.id+'/file','GET',undefined,organizer)).status,200,'organizer keeps preview access while paused');
+    assert.equal((await request('admin/media/'+beforePause.id+'/download','GET',undefined,organizer)).status,200,'organizer keeps download access while paused');
     assert.equal((await (await request('admin/media','GET',undefined,organizer)).json()).viewingEnabled,false);
     assert.equal((await request('photos','POST',image)).status,201,'paused viewing still accepts uploads');
     assert.equal((await request('admin/media/settings','POST',{viewingEnabled:true},organizer)).status,200);

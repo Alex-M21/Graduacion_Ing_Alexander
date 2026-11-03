@@ -74,6 +74,8 @@ try {
   assert.equal(await evaluate('document.querySelector(".admin-notice").textContent.includes("Alice Prueba")'),true);
   assert.equal(await evaluate('window.__qaCalls.at(-1).credentials'),'same-origin');
   await waitFor('document.querySelectorAll(".moderation-card").length===2');
+  assert.equal(await evaluate('Array.from(document.querySelectorAll(".moderation-card")).every(card=>{const link=card.querySelector("a[download]");return link && link.getAttribute("href")==="/api/admin/media/"+card.dataset.mediaId+"/download"})'),true,'each item has its private download link');
+  assert.equal(await evaluate('Array.from(document.querySelectorAll(".moderation-card a[download]")).map(a=>a.textContent.trim()).sort().join(",")'),'Descargar foto,Descargar video');
   for(const width of [320,390,1440]) {
     await send('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<=760});
     assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'),true,'moderation fits '+width);
@@ -81,10 +83,10 @@ try {
   await evaluate('document.querySelector(".moderation-switch").click()');await waitFor('document.querySelector(".moderation-switch").getAttribute("aria-checked")==="false" && !document.querySelector(".moderation-switch").disabled');
   assert.equal(await evaluate('document.querySelectorAll(".moderation-card").length'),2,'organizer still sees album while viewing is paused');
   await evaluate('document.querySelector(".moderation-switch").click()');await waitFor('document.querySelector(".moderation-switch").getAttribute("aria-checked")==="true" && !document.querySelector(".moderation-switch").disabled');
-  await evaluate('document.querySelector(".moderation-visibility").click()');await waitFor('document.querySelector(".media-visibility").classList.contains("is-hidden")');
+  await evaluate('document.querySelector("button.moderation-visibility").click()');await waitFor('document.querySelector(".media-visibility").classList.contains("is-hidden")');
   await evaluate('document.querySelectorAll(".moderation-toolbar select")[1].value="hidden";document.querySelectorAll(".moderation-toolbar select")[1].dispatchEvent(new Event("change",{bubbles:true}))');
   await waitFor('document.querySelectorAll(".moderation-card").length===1');
-  await evaluate('document.querySelector(".moderation-visibility").click()');await waitFor('document.querySelectorAll(".moderation-card").length===0');
+  await evaluate('document.querySelector("button.moderation-visibility").click()');await waitFor('document.querySelectorAll(".moderation-card").length===0');
   await evaluate('document.querySelectorAll(".moderation-toolbar select")[1].value="all";document.querySelectorAll(".moderation-toolbar select")[1].dispatchEvent(new Event("change",{bubbles:true}))');
   await waitFor('document.querySelectorAll(".moderation-card").length===2');
   async function confirmMediaDelete(accept) {

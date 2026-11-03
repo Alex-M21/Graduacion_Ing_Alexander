@@ -63,11 +63,13 @@ function mediaCursor(url:URL) {
     return value as {date:string;id:string};
   } catch {throw new MediaError("Página inválida.",400);}
 }
-async function readMedia(request:Request,media:typeof photos.$inferSelect) {
+async function readMedia(request:Request,media:typeof photos.$inferSelect,download=false) {
   let range;
   try {range=request.headers.has("if-range") ? null : byteRange(request.headers.get("range"),media.bytes);}
   catch {return new Response(null,{status:416,headers:{...noCache,"Content-Range":`bytes */${media.bytes}`,"Accept-Ranges":"bytes"}});}
-  const headers:Record<string,string>={...noCache,"Content-Type":media.contentType,"Content-Length":String(range?.length ?? media.bytes),"Content-Disposition":"inline","Accept-Ranges":"bytes"};
+  const extensions:Record<string,string>={"image/jpeg":"jpg","image/png":"png","image/webp":"webp","image/gif":"gif","video/mp4":"mp4","video/quicktime":"mov","video/webm":"webm"};
+  const filename=`graduacion-alexander-${media.contentType.startsWith("video/") ? "video" : "foto"}-${media.id}.${extensions[media.contentType] ?? "bin"}`;
+  const headers:Record<string,string>={...noCache,"Content-Type":media.contentType,"Content-Length":String(range?.length ?? media.bytes),"Content-Disposition":download ? `attachment; filename="${filename}"` : "inline","Accept-Ranges":"bytes"};
   if(range) headers["Content-Range"]=`bytes ${range.offset}-${range.offset+range.length-1}/${media.bytes}`;
   if(request.method==="HEAD") return new Response(null,{status:range ? 206 : 200,headers});
   const connection=media.objectKey.startsWith("drive:") ? await getDriveConnection(env.CUI_ENCRYPTION_KEY!) : null;
@@ -171,11 +173,12 @@ async function dispatch(request: Request): Promise<Response> {
         const items=rows.slice(0,30),last=items.at(-1);
         return json({media:items.map(item=>({...item,kind:item.contentType.startsWith("video/") ? "video" : "photo",url:"/api/admin/media/"+item.id+"/file"})),stats:{files:Number(totals.files),bytes:Number(totals.bytes),hidden:Number(totals.hidden)},viewingEnabled:await albumViewingEnabled(env.CUI_ENCRYPTION_KEY),nextCursor:rows.length>30 && last ? btoa(JSON.stringify({date:last.createdAt,id:last.id})) : null});
       }
-      const match=/^\/api\/admin\/media\/([a-f0-9-]{36})(\/file|\/visibility)?$/.exec(path);
+      const match=/^\/api\/admin\/media\/([a-f0-9-]{36})(\/file|\/download|\/visibility)?$/.exec(path);
       if(!match) return json({error:"Ruta no encontrada."},404);
       const item=await db.query.photos.findFirst({where:eq(photos.id,match[1])});
       if(!item) return json({error:"Recuerdo no encontrado."},404);
       if(match[2]==="/file" && ["GET","HEAD"].includes(request.method)) return await readMedia(request,item);
+      if(match[2]==="/download" && ["GET","HEAD"].includes(request.method)) return await readMedia(request,item,true);
       if(match[2]==="/visibility" && request.method==="POST") {
         let body;try {body=JSON.parse(new TextDecoder().decode(await readLimited(request,512)));}catch {return json({error:"Respuesta inválida."},400);}
         if(typeof body.hidden!=="boolean") return json({error:"Respuesta inválida."},400);
